@@ -1,0 +1,21 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-brand-50: #ecfdf3;
+  --color-brand-100: #d1fae1;
+  --color-brand-500: #16a34a;
+  --color-brand-600: #15803d;
+  --color-brand-700: #166534;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang TC",
+    "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+}
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: #fafaf9;
+  color: #1c1917;
+}
