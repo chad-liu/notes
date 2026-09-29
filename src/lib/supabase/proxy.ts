@@ -28,7 +28,9 @@ export async function updateSession(request: NextRequest) {
 
   // 必須緊接在建立 client 之後呼叫，以刷新過期的 token
   const { data } = await supabase.auth.getClaims();
-  const isPublic = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
+  const path = request.nextUrl.pathname;
+  // /s/<token> 是分享給沒有帳號的人看的筆記（注意不能寫成 "/s"，會連 /share、/search 都放行）
+  const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p)) || path.startsWith("/s/");
 
   if (!data?.claims && !isPublic) {
     // 記住原本要去的頁面（例如從手機分享進來），登入後回到那裡

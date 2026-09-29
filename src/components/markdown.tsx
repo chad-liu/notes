@@ -32,6 +32,39 @@ const components: Components = {
   tr: tableTag("tr"),
 };
 
+/**
+ * 分享頁（沒登入的人看）：附件改走 /s/<token>/files/…（用分享 token 驗證），
+ * 其他站內連結（例如 [[筆記連結]]）對方打不開，改成純文字。
+ */
+function sharedComponents(token: string): Components {
+  const fileHref = (href: string) => `/s/${encodeURIComponent(token)}${href}`;
+  return {
+    ...components,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    a: ({ node, href = "", children, ...props }) =>
+      href.startsWith("/files/") ? (
+        <a href={fileHref(href)} {...props} target="_blank" rel="noopener noreferrer">
+          {children}
+        </a>
+      ) : href.startsWith("/") ? (
+        <span className="font-medium">{children}</span>
+      ) : (
+        <a href={href} {...props} target="_blank" rel="noopener noreferrer">
+          {children}
+        </a>
+      ),
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    img: ({ node, src, alt, ...props }) => (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={typeof src === "string" && src.startsWith("/files/") ? fileHref(src) : src}
+        alt={alt ?? ""}
+        {...props}
+      />
+    ),
+  };
+}
+
 type ToggleTask = (line: number, checked: boolean) => void;
 
 /** 把待辦項目裡的 checkbox 變成可以點（鬆散清單的 checkbox 會包在 <p> 裡，所以往下找一層） */
@@ -74,16 +107,21 @@ export default function Markdown({
   children,
   links,
   onToggleTask,
+  shareToken,
 }: {
   children: string;
   links?: Record<string, string>;
   onToggleTask?: ToggleTask;
+  /** 在分享頁顯示時的分享 token */
+  shareToken?: string;
 }) {
   return (
     <div className="prose prose-stone dark:prose-invert max-w-none prose-a:text-accent prose-img:rounded-lg">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, [remarkWikiLinks, { links }]]}
-        components={onToggleTask ? withTaskToggle(onToggleTask) : components}
+        components={
+          shareToken ? sharedComponents(shareToken) : onToggleTask ? withTaskToggle(onToggleTask) : components
+        }
       >
         {children}
       </ReactMarkdown>

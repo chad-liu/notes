@@ -113,6 +113,7 @@ export default function Sidebar({
       <div className="mt-auto space-y-2 border-t border-stone-200 pt-3">
         <NavLink href="/notebooks">📓 筆記本管理</NavLink>
         <NavLink href="/tags">🏷️ 標籤管理</NavLink>
+        <NavLink href="/shares">🔗 分享中</NavLink>
         <NavLink href="/export">⬇️ 匯出備份</NavLink>
         <NavLink href="/trash">🗑️ 垃圾桶</NavLink>
         <InstallButton />

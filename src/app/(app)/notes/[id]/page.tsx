@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { loadNoteLinks } from "@/lib/note-links";
 import { requireUser } from "@/lib/supabase/server";
+import { loadShare } from "@/lib/shares";
 import { loadTagCounts } from "@/lib/tags";
 import { loadTrash } from "@/lib/trash";
 import type { Note, Notebook } from "@/lib/types";
@@ -37,7 +38,11 @@ export default async function NotePage({ params, searchParams }: PageProps<"/not
     if (trashed) redirect(`/trash/${id}`);
     notFound();
   }
-  const [{ links, backlinks }, tagCounts] = await Promise.all([loadNoteLinks(supabase, note), loadTagCounts(supabase)]);
+  const [{ links, backlinks }, tagCounts, share] = await Promise.all([
+    loadNoteLinks(supabase, note),
+    loadTagCounts(supabase),
+    loadShare(supabase, note.id),
+  ]);
 
   return (
     <>
@@ -59,6 +64,7 @@ export default async function NotePage({ params, searchParams }: PageProps<"/not
         links={links}
         backlinks={backlinks}
         allTags={tagCounts.map((t) => t.tag)}
+        share={share && { token: share.token, expires_at: share.expires_at, created_at: share.created_at }}
       />
     </>
   );
