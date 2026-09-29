@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { loadNoteLinks } from "@/lib/note-links";
 import { requireUser } from "@/lib/supabase/server";
 import type { Note, Notebook } from "@/lib/types";
 import NoteEditor from "@/components/note-editor";
@@ -25,6 +26,15 @@ export default async function NotePage({ params }: PageProps<"/notes/[id]">) {
     supabase.from("notebooks").select("id, name, created_at").order("name"),
   ]);
   if (!note) notFound();
+  const { links, backlinks } = await loadNoteLinks(supabase, note);
 
-  return <NoteEditor key={note.id} note={note as Note} notebooks={(notebooks ?? []) as Notebook[]} />;
+  return (
+    <NoteEditor
+      key={note.id}
+      note={note as Note}
+      notebooks={(notebooks ?? []) as Notebook[]}
+      links={links}
+      backlinks={backlinks}
+    />
+  );
 }

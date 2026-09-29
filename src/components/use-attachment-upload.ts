@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState, type RefObject } from "react";
+import { flushSync } from "react-dom";
 import {
   ATTACHMENTS_BUCKET,
   MAX_ATTACHMENT_BYTES,
@@ -34,10 +35,11 @@ export function useAttachmentUpload({ userId, noteId, getContent, setContent, te
       // 前後空一行，讓附件自成一段（Markdown 單一換行不會分段）
       const prefix = !before || before.endsWith("\n\n") ? "" : before.endsWith("\n") ? "\n" : "\n\n";
       const suffix = after.startsWith("\n\n") ? "" : after.startsWith("\n") ? "\n" : "\n\n";
-      setContent(before + prefix + text + suffix + after);
+      // 同步更新後立刻放好游標，避免下一個 frame 前打的字被游標跳回去弄亂
+      flushSync(() => setContent(before + prefix + text + suffix + after));
       if (ta) {
         const pos = (before + prefix + text + suffix).length;
-        requestAnimationFrame(() => ta.setSelectionRange(pos, pos));
+        ta.setSelectionRange(pos, pos);
       }
     },
     [getContent, setContent, textareaRef],

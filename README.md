@@ -5,6 +5,8 @@
 | 功能 | 說明 |
 | --- | --- |
 | 📝 **筆記** | Markdown 編輯器（編輯 / 分割 / 預覽）、自動儲存、筆記本、標籤、釘選、圖片與附件（按鈕、貼上、拖曳） |
+| 🔗 **筆記連結** | `[[筆記標題]]` 或 `[[標題\|顯示文字]]` 互相連結，輸入 `[[` 會跳出標題建議；每則筆記下方列出「連到這則筆記」的反向連結；改標題時可一併更新其他筆記裡的連結 |
+| ⬇️ **匯出備份** | 一鍵把所有筆記下載成 Markdown 檔的 zip（依筆記本分資料夾、含附件與 `backup.json`），可直接用 Obsidian 開啟 |
 | 🔍 **搜尋** | 全文檢索（支援中文）：多關鍵字、`-排除`、`"片語"`、`#標籤`，依相關度排序並標示關鍵字；`Ctrl/⌘ + K` 隨時搜尋 |
 | ⚡ **速記** | 一行輸入、`Ctrl/⌘ + Enter` 立即記下，之後可轉成正式筆記 |
 | 📔 **日誌** | 月曆檢視，每天一篇，點日期即可寫 |
@@ -25,6 +27,7 @@
    - [`0001_init.sql`](supabase/migrations/0001_init.sql)：建立 `notebooks`、`notes`、`feeds` 三張表，並開啟 Row Level Security（每個人只看得到自己的資料）。
    - [`0002_attachments.sql`](supabase/migrations/0002_attachments.sql)：建立私有的 `attachments` Storage bucket（單檔上限 25 MB），每個人只能存取自己的檔案。
    - [`0003_search.sql`](supabase/migrations/0003_search.sql)：全文檢索（`pg_trgm` 索引 + `search_notes` 函式）。
+   - [`0004_note_links.sql`](supabase/migrations/0004_note_links.sql)：筆記連結（標題解析、反向連結、改名時更新連結）。
 3. **Authentication → URL Configuration**：
    - **Site URL** 填你的 Vercel 網址，例如 `https://notes-xxx.vercel.app`
    - **Redirect URLs** 加上 `https://notes-xxx.vercel.app/auth/confirm` 與 `http://localhost:3000/auth/confirm`
@@ -72,11 +75,13 @@ src/
 │   ├── offline/                # 離線時由 Service Worker 顯示
 │   ├── (app)/                  # 需登入的頁面（含側邊欄）
 │   │   ├── notes/              # 筆記列表、搜尋、篩選
-│   │   ├── notes/[id]/         # 筆記編輯器
+│   │   ├── notes/[id]/         # 筆記編輯器（含反向連結）
+│   │   ├── notes/link/         # [[標題]] 連結落點：開啟或建立筆記
 │   │   ├── quick/              # 速記
 │   │   ├── journal/            # 日誌月曆
 │   │   ├── news/               # RSS 新聞、剪藏網頁
-│   │   └── share/              # PWA 分享目標
+│   │   ├── share/              # PWA 分享目標
+│   │   └── export/             # 匯出與備份（/export/download 產生 zip）
 │   └── actions/                # Server Actions（新增 / 更新 / 刪除）
 ├── components/                 # 側邊欄、編輯器、Markdown 等元件
 └── lib/
@@ -84,6 +89,9 @@ src/
     ├── rss.ts                  # RSS / Atom 解析
     ├── clip.ts                 # 網頁剪藏：Readability 擷取內文 → Markdown
     ├── search.ts               # 搜尋語法解析、關鍵字標示
+    ├── export.ts               # 匯出 zip（串流產生，筆記分頁讀取）
+    ├── wikilinks.ts            # [[筆記連結]] 解析與 Markdown 外掛
+    ├── note-links.ts           # 筆記頁的連結資料（解析標題、反向連結）
     ├── safe-fetch.ts           # 抓外部網址（擋內網位址、限制大小、處理 Big5 等編碼）
     ├── attachments.ts          # 附件路徑與 Markdown 格式
     └── format.ts               # 日期、摘要、標籤工具

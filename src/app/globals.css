@@ -66,3 +66,13 @@ body {
 :root[data-theme="dark"] body {
   color: #eeebe8;
 }
+
+/* [[筆記連結]]：不存在的筆記用虛線，點了可以建立 */
+.prose a.wikilink {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.prose a.wikilink-missing {
+  text-decoration-style: dashed;
+  opacity: 0.75;
+}
