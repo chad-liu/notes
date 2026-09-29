@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ATTACHMENTS_BUCKET, noteFolder } from "@/lib/attachments";
 import { articleToNote, clipUrl } from "@/lib/clip";
 import { requireUser } from "@/lib/supabase/server";
 import { isISODate } from "@/lib/format";
@@ -50,20 +49,6 @@ export async function updateNote(id: string, patch: NotePatch) {
   if (error) return { error: error.message };
   revalidatePath("/", "layout");
   return { updated_at: data.updated_at as string };
-}
-
-export async function deleteNote(id: string, redirectTo = "/notes") {
-  const { supabase, userId } = await requireUser();
-  const { error } = await supabase.from("notes").delete().eq("id", id);
-  if (error) throw new Error(error.message);
-  // 一併刪除這則筆記的附件（失敗不影響刪除筆記）
-  const folder = noteFolder(userId, id);
-  const { data: files } = await supabase.storage.from(ATTACHMENTS_BUCKET).list(folder, { limit: 1000 });
-  if (files?.length) {
-    await supabase.storage.from(ATTACHMENTS_BUCKET).remove(files.map((f) => `${folder}/${f.name}`));
-  }
-  revalidatePath("/", "layout");
-  redirect(redirectTo);
 }
 
 export async function togglePin(id: string, pinned: boolean) {

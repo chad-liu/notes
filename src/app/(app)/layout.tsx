@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/supabase/server";
 import { loadTagCounts } from "@/lib/tags";
 import Sidebar from "@/components/sidebar";
 import MobileNav from "@/components/mobile-nav";
+import TrashToast from "@/components/trash-toast";
 import type { Notebook } from "@/lib/types";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
@@ -25,6 +26,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       <div className="flex min-w-0 flex-1 flex-col">
         <MobileNav>{sidebar}</MobileNav>
         <main className="flex-1">{children}</main>
+        <TrashToast />
       </div>
     </div>
   );

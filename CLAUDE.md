@@ -40,6 +40,8 @@ npx next typegen       # 新增或改名路由後，重新產生路由型別（P
 
 **筆記連結解析**（`lib/note-links.ts` 的 `resolveNoteTitles`）先呼叫 `resolve_note_titles`；函式出錯（會寫進伺服器 log）或有標題對不到時，會直接查 `notes` 表並在 JS 用 `titleKey` 比對，因為 SQL 的 `btrim` 去不掉全形空白、不換行空白。筆記頁與 `/notes/link` 都走這個函式。
 
+**垃圾桶**（0006）：`notes.deleted_at` 不是 null 就在垃圾桶裡。notes 的 RLS 只讓一般存取看到、改到 `deleted_at is null` 的筆記，所以新的查詢不需要自己排除垃圾桶；但 `security definer` 函式不受 RLS 限制，新寫的必須自己加 `deleted_at is null`。移到垃圾桶、還原、列出、永久刪除都走 `trash_note`／`restore_note`／`trashed_notes`／`purge_notes`（`lib/trash.ts`、`app/actions/trash.ts`），用戶端無法直接改 `deleted_at`。永久刪除會一併刪附件；超過 30 天的在打開 `/trash` 時清掉（沒有排程）。日誌「每天一篇」的唯一索引只算不在垃圾桶裡的。
+
 **標籤**存在 `notes.tags`（text[]）。統計用 `tag_counts()`（`lib/tags.ts` 的 `loadTagCounts`，側邊欄、`/tags`、編輯器的標籤建議共用），改名／合併／刪除用 `replace_tag`（`app/actions/tags.ts`）。標籤名稱的規則以 `parseTags` 為準（不能有空白或逗號）。
 
 **資料變更**都是 `src/app/actions/` 裡的 Server Actions，通常會 `revalidatePath("/", "layout")` 讓側邊欄（筆記本、標籤）更新。筆記編輯器（`components/note-editor.tsx`）透過 debounce 的修改佇列呼叫 `updateNote` 自動儲存；每次儲存後伺服器端 props（`links`、`backlinks`）會更新，本地的編輯狀態則保留。

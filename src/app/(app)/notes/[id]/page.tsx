@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { loadNoteLinks } from "@/lib/note-links";
 import { requireUser } from "@/lib/supabase/server";
 import { loadTagCounts } from "@/lib/tags";
+import { loadTrash } from "@/lib/trash";
 import type { Note, Notebook } from "@/lib/types";
 import NoteEditor from "@/components/note-editor";
 
@@ -26,7 +27,12 @@ export default async function NotePage({ params }: PageProps<"/notes/[id]">) {
       .maybeSingle(),
     supabase.from("notebooks").select("id, name, created_at").order("name"),
   ]);
-  if (!note) notFound();
+  if (!note) {
+    // 在垃圾桶裡的話，改開唯讀預覽
+    const [trashed] = await loadTrash(supabase, id);
+    if (trashed) redirect(`/trash/${id}`);
+    notFound();
+  }
   const [{ links, backlinks }, tagCounts] = await Promise.all([loadNoteLinks(supabase, note), loadTagCounts(supabase)]);
 
   return (
