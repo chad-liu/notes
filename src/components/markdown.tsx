@@ -26,7 +26,7 @@ const components: Components = {
 
 export default function Markdown({ children }: { children: string }) {
   return (
-    <div className="prose prose-stone max-w-none prose-a:text-brand-700 prose-img:rounded-lg">
+    <div className="prose prose-stone dark:prose-invert max-w-none prose-a:text-accent prose-img:rounded-lg">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {children}
       </ReactMarkdown>

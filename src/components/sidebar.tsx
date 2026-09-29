@@ -4,6 +4,7 @@ import { createNote } from "@/app/actions/notes";
 import { createNotebook } from "@/app/actions/notebooks";
 import type { Notebook } from "@/lib/types";
 import NavLink from "./nav-link";
+import ThemeToggle from "./theme-toggle";
 
 export default function Sidebar({
   notebooks,
@@ -47,9 +48,9 @@ export default function Sidebar({
           <input
             name="name"
             placeholder="新筆記本…"
-            className="min-w-0 flex-1 rounded-md border border-stone-300 bg-white px-2 py-1 outline-none focus:border-brand-500"
+            className="min-w-0 flex-1 rounded-md border border-stone-300 bg-surface px-2 py-1 outline-none focus:border-brand-500"
           />
-          <button className="rounded-md px-2 text-brand-700 hover:bg-stone-200" aria-label="建立筆記本">
+          <button className="rounded-md px-2 text-accent hover:bg-stone-200" aria-label="建立筆記本">
             ＋
           </button>
         </form>
@@ -63,7 +64,7 @@ export default function Sidebar({
               <Link
                 key={t}
                 href={`/notes?tag=${encodeURIComponent(t)}`}
-                className="rounded-full bg-white px-2 py-0.5 text-xs text-stone-600 ring-1 ring-stone-200 hover:ring-brand-500"
+                className="rounded-full bg-surface px-2 py-0.5 text-xs text-stone-600 ring-1 ring-stone-200 hover:ring-brand-500"
               >
                 #{t}
               </Link>
@@ -72,7 +73,8 @@ export default function Sidebar({
         </div>
       )}
 
-      <div className="mt-auto border-t border-stone-200 pt-3">
+      <div className="mt-auto space-y-2 border-t border-stone-200 pt-3">
+        <ThemeToggle />
         <p className="truncate px-2 text-xs text-stone-500">{email}</p>
         <form action={signOut}>
           <button className="mt-1 w-full rounded-md px-2 py-1 text-left text-stone-600 hover:bg-stone-200">

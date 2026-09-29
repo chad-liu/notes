@@ -1,12 +1,19 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* 深色模式由 <html data-theme="dark"> 控制（見 layout.tsx 的 themeScript） */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 @theme {
   --color-brand-50: #ecfdf3;
   --color-brand-100: #d1fae1;
   --color-brand-500: #16a34a;
   --color-brand-600: #15803d;
   --color-brand-700: #166534;
+  /* 語意色：卡片底色、綠色文字連結 */
+  --color-surface: #ffffff;
+  --color-accent: #166534;
+  --color-canvas: #fafaf9;
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang TC",
     "Microsoft JhengHei", "Noto Sans TC", sans-serif;
 }
@@ -15,7 +22,41 @@
   color-scheme: light;
 }
 
+/*
+ * 深色模式：介面只用 stone 灰階 + surface/accent/brand，
+ * 所以直接改寫這些變數，所有元件就會一起換色，不必逐一加 dark: class。
+ * stone 大致反轉：50/100 是淺底 → 深底，500–700 是文字 → 淺色文字。
+ */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-canvas: #141312;
+  --color-surface: #1f1d1c;
+  --color-accent: #6ee7a0;
+
+  --color-stone-50: #252321;
+  --color-stone-100: #292624;
+  --color-stone-200: #36322f;
+  --color-stone-300: #4a4542;
+  --color-stone-400: #8c8580;
+  --color-stone-500: #a8a29e;
+  --color-stone-600: #c4bfbb;
+  --color-stone-700: #dcd8d5;
+
+  --color-brand-50: #11291b;
+  --color-brand-100: #173d25;
+  --color-brand-500: #22c55e;
+
+  --color-amber-50: #2d2410;
+  --color-amber-800: #fcd34d;
+  --color-red-50: #3b1616;
+  --color-red-600: #f87171;
+}
+
 body {
-  background: #fafaf9;
-  color: #1c1917;
+  background: var(--color-canvas);
+  color: var(--color-stone-900);
+}
+
+:root[data-theme="dark"] body {
+  color: #eeebe8;
 }

@@ -33,12 +33,12 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
     <div className="mx-auto max-w-4xl p-4 md:p-8">
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold">📰 新聞</h1>
-        <Link href="/notes?type=news" className="ml-auto text-sm text-brand-700 hover:underline">
+        <Link href="/notes?type=news" className="ml-auto text-sm text-accent hover:underline">
           已剪藏 {clipCount ?? 0} 則 →
         </Link>
       </div>
 
-      <details className="mb-4 rounded-xl border border-stone-200 bg-white p-4" open={feeds.length === 0}>
+      <details className="mb-4 rounded-xl border border-stone-200 bg-surface p-4" open={feeds.length === 0}>
         <summary className="cursor-pointer font-medium">管理訂閱（{feeds.length}）</summary>
         <div className="mt-3 space-y-3">
           <FeedForm />
@@ -75,14 +75,14 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
 
       <ul className="space-y-2">
         {items.map((it, i) => (
-          <li key={`${it.link}-${i}`} className="rounded-xl border border-stone-200 bg-white p-4">
+          <li key={`${it.link}-${i}`} className="rounded-xl border border-stone-200 bg-surface p-4">
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1">
                 <a
                   href={it.link || undefined}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-semibold hover:text-brand-700 hover:underline"
+                  className="font-semibold hover:text-accent hover:underline"
                 >
                   {it.title}
                 </a>
@@ -112,7 +112,7 @@ function Chip({ href, active, children }: { href: string; active: boolean; child
   return (
     <Link
       href={href}
-      className={`rounded-full px-3 py-1 ring-1 ${active ? "bg-brand-600 text-white ring-brand-600" : "bg-white text-stone-600 ring-stone-200 hover:ring-brand-500"}`}
+      className={`rounded-full px-3 py-1 ring-1 ${active ? "bg-brand-600 text-white ring-brand-600" : "bg-surface text-stone-600 ring-stone-200 hover:ring-brand-500"}`}
     >
       {children}
     </Link>

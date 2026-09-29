@@ -34,7 +34,7 @@ export default function LoginForm() {
         />
       </label>
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
-      {state.message && <p className="text-sm text-brand-700">{state.message}</p>}
+      {state.message && <p className="text-sm text-accent">{state.message}</p>}
       <button
         disabled={pending}
         className="w-full rounded-lg bg-brand-600 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-60"
@@ -46,7 +46,7 @@ export default function LoginForm() {
         <button
           type="button"
           onClick={() => setMode(mode === "in" ? "up" : "in")}
-          className="ml-1 font-medium text-brand-700 hover:underline"
+          className="ml-1 font-medium text-accent hover:underline"
         >
           {mode === "in" ? "註冊" : "登入"}
         </button>

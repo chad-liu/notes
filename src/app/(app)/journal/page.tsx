@@ -50,7 +50,7 @@ export default async function JournalPage({ searchParams }: PageProps<"/journal"
         </form>
       </div>
 
-      <div className="rounded-xl border border-stone-200 bg-white p-4">
+      <div className="rounded-xl border border-stone-200 bg-surface p-4">
         <div className="mb-3 flex items-center justify-between">
           <Link href={`/journal?month=${prev}`} className="rounded-md px-2 py-1 hover:bg-stone-100">‹</Link>
           <span className="font-semibold">{year} 年 {month} 月</span>
@@ -70,7 +70,7 @@ export default async function JournalPage({ searchParams }: PageProps<"/journal"
                 <button
                   title={has ? (byDate.get(date)!.title as string) : "新增日誌"}
                   className={`h-11 w-full rounded-lg transition md:h-14 ${
-                    has ? "bg-brand-100 font-semibold text-brand-700 hover:bg-brand-500 hover:text-white" : "hover:bg-stone-100"
+                    has ? "bg-brand-100 font-semibold text-accent hover:bg-brand-500 hover:text-white" : "hover:bg-stone-100"
                   } ${isToday ? "ring-2 ring-brand-500" : ""}`}
                 >
                   {d}
@@ -86,7 +86,7 @@ export default async function JournalPage({ searchParams }: PageProps<"/journal"
       <ul className="space-y-2">
         {entries?.map((e) => (
           <li key={e.id}>
-            <Link href={`/notes/${e.id}`} className="block rounded-xl border border-stone-200 bg-white p-4 hover:border-brand-500">
+            <Link href={`/notes/${e.id}`} className="block rounded-xl border border-stone-200 bg-surface p-4 hover:border-brand-500">
               <div className="text-sm text-stone-400">{e.journal_date}</div>
               <div className="font-semibold">{e.title}</div>
               {e.content && <p className="mt-1 line-clamp-2 text-sm text-stone-600">{excerpt(e.content as string, 160)}</p>}

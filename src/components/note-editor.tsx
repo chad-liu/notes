@@ -94,7 +94,7 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
   return (
     <div className="mx-auto flex h-full max-w-6xl flex-col p-4 md:p-8">
       <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
-        <Link href={backHref[type]} className="text-stone-500 hover:text-brand-700">
+        <Link href={backHref[type]} className="text-stone-500 hover:text-accent">
           ← 返回
         </Link>
         <span className={`ml-2 text-xs ${status === "error" ? "text-red-600" : "text-stone-400"}`}>
@@ -106,7 +106,7 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
               <button
                 key={m}
                 onClick={() => setMode(m)}
-                className={`px-3 py-1 ${mode === m ? "bg-brand-600 text-white" : "bg-white hover:bg-stone-50"} ${
+                className={`px-3 py-1 ${mode === m ? "bg-brand-600 text-white" : "bg-surface hover:bg-stone-50"} ${
                   m === "split" ? "hidden md:block" : ""
                 }`}
               >
@@ -120,7 +120,7 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
               queue({ pinned: !pinned }, 0);
             }}
             title={pinned ? "取消釘選" : "釘選"}
-            className={`rounded-lg px-2 py-1 ring-1 ring-stone-200 ${pinned ? "bg-amber-50" : "bg-white opacity-60"}`}
+            className={`rounded-lg px-2 py-1 ring-1 ring-stone-200 ${pinned ? "bg-amber-50" : "bg-surface opacity-60"}`}
           >
             📌
           </button>
@@ -131,7 +131,7 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
                 startDelete(() => deleteNote(note.id, backHref[type]));
               }
             }}
-            className="rounded-lg bg-white px-2 py-1 text-red-600 ring-1 ring-stone-200 hover:bg-red-50"
+            className="rounded-lg bg-surface px-2 py-1 text-red-600 ring-1 ring-stone-200 hover:bg-red-50"
           >
             刪除
           </button>
@@ -157,7 +157,7 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
             setType(t);
             queue({ type: t }, 0);
           }}
-          className="rounded-md border border-stone-200 bg-white px-2 py-1"
+          className="rounded-md border border-stone-200 bg-surface px-2 py-1"
         >
           {NOTE_TYPES.map((t) => (
             <option key={t.type} value={t.type}>
@@ -171,7 +171,7 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
             setNotebookId(e.target.value);
             queue({ notebook_id: e.target.value || null }, 0);
           }}
-          className="rounded-md border border-stone-200 bg-white px-2 py-1"
+          className="rounded-md border border-stone-200 bg-surface px-2 py-1"
         >
           <option value="">（無筆記本）</option>
           {notebooks.map((nb) => (
@@ -188,11 +188,11 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
           }}
           onBlur={() => void flush()}
           placeholder="標籤（以逗號或空白分隔）"
-          className="min-w-40 flex-1 rounded-md border border-stone-200 bg-white px-2 py-1 outline-none focus:border-brand-500"
+          className="min-w-40 flex-1 rounded-md border border-stone-200 bg-surface px-2 py-1 outline-none focus:border-brand-500"
         />
         {note.journal_date && <span className="text-xs">📅 {note.journal_date}</span>}
         {note.source_url && (
-          <a href={note.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-700 hover:underline">
+          <a href={note.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline">
             🔗 原文
           </a>
         )}
@@ -209,13 +209,13 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
             onBlur={() => void flush()}
             autoFocus={!note.content}
             placeholder="開始寫作…（支援 Markdown：# 標題、**粗體**、- [ ] 待辦、表格…）"
-            className="min-h-[60vh] w-full resize-none rounded-xl border border-stone-200 bg-white p-4 font-mono text-[15px] leading-relaxed outline-none focus:border-brand-500"
+            className="min-h-[60vh] w-full resize-none rounded-xl border border-stone-200 bg-surface p-4 font-mono text-[15px] leading-relaxed outline-none focus:border-brand-500"
           />
         )}
         {mode !== "edit" && (
           <div
             onDoubleClick={() => mode === "preview" && setMode("edit")}
-            className="min-h-[60vh] overflow-auto rounded-xl border border-stone-200 bg-white p-6"
+            className="min-h-[60vh] overflow-auto rounded-xl border border-stone-200 bg-surface p-6"
             title={mode === "preview" ? "雙擊進入編輯" : undefined}
           >
             {content.trim() ? (
