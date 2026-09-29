@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { renameNoteLinks } from "@/app/actions/links";
 import { updateNote, type NotePatch } from "@/app/actions/notes";
@@ -51,6 +52,7 @@ export default function NoteEditor({
   const [status, setStatus] = useState<Status>("saved");
   const [updatedAt, setUpdatedAt] = useState(note.updated_at);
   const [, startDelete] = useTransition();
+  const router = useRouter();
   const [dragging, setDragging] = useState(false);
 
   const pending = useRef<NotePatch>({});
@@ -211,6 +213,17 @@ export default function NoteEditor({
               e.target.value = "";
             }}
           />
+          <button
+            onClick={async () => {
+              // 先存好還沒送出的修改，版本紀錄頁才會跟目前內容比較
+              await flush();
+              router.push(`/notes/${note.id}/history`);
+            }}
+            title="版本紀錄"
+            className="rounded-lg bg-surface px-2 py-1 ring-1 ring-stone-200 hover:bg-stone-50"
+          >
+            🕘<span className="hidden sm:inline"> 版本</span>
+          </button>
           <button
             onClick={() => {
               setPinned(!pinned);

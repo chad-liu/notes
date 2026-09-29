@@ -42,6 +42,8 @@ npx next typegen       # 新增或改名路由後，重新產生路由型別（P
 
 **垃圾桶**（0006）：`notes.deleted_at` 不是 null 就在垃圾桶裡。notes 的 RLS 只讓一般存取看到、改到 `deleted_at is null` 的筆記，所以新的查詢不需要自己排除垃圾桶；但 `security definer` 函式不受 RLS 限制，新寫的必須自己加 `deleted_at is null`。移到垃圾桶、還原、列出、永久刪除都走 `trash_note`／`restore_note`／`trashed_notes`／`purge_notes`（`lib/trash.ts`、`app/actions/trash.ts`），用戶端無法直接改 `deleted_at`。永久刪除會一併刪附件；超過 30 天的在打開 `/trash` 時清掉（沒有排程）。日誌「每天一篇」的唯一索引只算不在垃圾桶裡的。
 
+**版本紀錄**（0007）：`note_versions` 由 notes 的 AFTER UPDATE 觸發器 `snapshot_note_version` 寫入（標題或內容改變時存「修改前」的內容；不是每次自動儲存都存，規則在 migration 開頭的註解），用戶端只能讀。還原走 `restore_note_version`，它用 `set_config('notes.force_version', 'on', true)` 強制先存下目前內容。任何會改 `title`／`content` 的 UPDATE（包含 `rename_note_links`、待辦勾選）都會經過這個觸發器。頁面在 `/notes/[id]/history`（`lib/versions.ts`、`components/text-diff.tsx` 用 `diff` 套件逐行比較）。
+
 **待辦**：沒有獨立的資料表，就是筆記內容裡的 GFM task list。解析與改寫都用 `lib/todos.ts`（`parseTasks`、`setTaskChecked`，行號從 0 開始，略過程式碼區塊），`/todos` 總覽與筆記預覽的勾選（`Markdown` 的 `onToggleTask`，用 li 的原始碼行號對應）共用。總覽的 `toggleTodo` 是「讀內容 → 改一行 → 寫回」，寫入時加上 `updated_at` 相同的條件、衝突就重讀重試，否則同時勾同一則筆記的不同項目會互相覆蓋。
 
 **標籤**存在 `notes.tags`（text[]）。統計用 `tag_counts()`（`lib/tags.ts` 的 `loadTagCounts`，側邊欄、`/tags`、編輯器的標籤建議共用），改名／合併／刪除用 `replace_tag`（`app/actions/tags.ts`）。標籤名稱的規則以 `parseTags` 為準（不能有空白或逗號）。
