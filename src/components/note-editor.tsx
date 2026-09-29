@@ -2,11 +2,15 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { renameNoteLinks } from "@/app/actions/links";
 import { deleteNote, updateNote, type NotePatch } from "@/app/actions/notes";
 import { formatDateTime, parseTags } from "@/lib/format";
+import type { Backlink } from "@/lib/note-links";
 import { NOTE_TYPES, type Note, type Notebook, type NoteType } from "@/lib/types";
+import BacklinksPanel from "./backlinks-panel";
 import Markdown from "./markdown";
 import { useAttachmentUpload } from "./use-attachment-upload";
+import { useWikiAutocomplete } from "./use-wiki-autocomplete";
 
 type Mode = "edit" | "split" | "preview";
 type Status = "saved" | "dirty" | "saving" | "error";
@@ -18,7 +22,19 @@ const backHref: Record<NoteType, string> = {
   news: "/news",
 };
 
-export default function NoteEditor({ note, notebooks }: { note: Note; notebooks: Notebook[] }) {
+export default function NoteEditor({
+  note,
+  notebooks,
+  links,
+  backlinks,
+}: {
+  note: Note;
+  notebooks: Notebook[];
+  /** 內容裡 [[標題]] 對應到的筆記（titleKey → id） */
+  links: Record<string, string>;
+  /** 連到這則筆記的其他筆記 */
+  backlinks: Backlink[];
+}) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
   const [tagsText, setTagsText] = useState(note.tags.join(", "));
@@ -82,6 +98,33 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
     textareaRef,
   });
   const filesFrom = (list: FileList | null | undefined) => Array.from(list ?? []);
+  const wiki = useWikiAutocomplete({
+    textareaRef,
+    noteId: note.id,
+    getContent: () => contentRef.current,
+    setContent: updateContent,
+  });
+
+  // 改標題後，連到舊標題的 [[…]] 會斷掉：記住開啟時的標題與反向連結數，提示一併更新
+  const [titleAtOpen, setTitleAtOpen] = useState(note.title);
+  const [linkedAtOpen, setLinkedAtOpen] = useState(backlinks.length);
+  const [renaming, setRenaming] = useState(false);
+  const [renameDismissed, setRenameDismissed] = useState(false);
+  const [renameMessage, setRenameMessage] = useState<string | null>(null);
+  const renamed = title.trim() !== "" && titleAtOpen.trim() !== "" && title.trim() !== titleAtOpen.trim();
+  const updateLinks = async () => {
+    setRenaming(true);
+    await flush();
+    const res = await renameNoteLinks(titleAtOpen, title);
+    setRenaming(false);
+    if ("error" in res) {
+      setRenameMessage(`更新連結失敗：${res.error}`);
+      return;
+    }
+    setRenameMessage(`已更新 ${res.updated} 則筆記的連結`);
+    setTitleAtOpen(title);
+    setLinkedAtOpen(0);
+  };
 
   // 離開頁面前提醒 / 儲存
   useEffect(() => {
@@ -198,6 +241,35 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
         className="mb-2 w-full bg-transparent text-3xl font-bold outline-none placeholder:text-stone-300"
       />
 
+      {renamed && linkedAtOpen > 0 && !renameDismissed && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <span>
+            有 {linkedAtOpen} 則筆記用「{titleAtOpen}
+            」連到這裡，改名後連結會斷掉。
+          </span>
+          <span className="ml-auto flex gap-2">
+            <button
+              onClick={updateLinks}
+              disabled={renaming}
+              className="rounded-md bg-brand-600 px-3 py-1 font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+            >
+              {renaming ? "更新中…" : "一併更新連結"}
+            </button>
+            <button onClick={() => setRenameDismissed(true)} className="rounded-md px-2 py-1 hover:bg-amber-100/50">
+              保持原樣
+            </button>
+          </span>
+        </div>
+      )}
+      {renameMessage && (
+        <p className="mb-3 flex items-center gap-2 text-sm text-accent">
+          ✓ {renameMessage}
+          <button onClick={() => setRenameMessage(null)} className="text-stone-400" aria-label="關閉">
+            ✕
+          </button>
+        </p>
+      )}
+
       <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-stone-600">
         <select
           value={type}
@@ -241,7 +313,12 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
         />
         {note.journal_date && <span className="text-xs">📅 {note.journal_date}</span>}
         {note.source_url && (
-          <a href={note.source_url} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline">
+          <a
+            href={note.source_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-accent hover:underline"
+          >
             🔗 原文
           </a>
         )}
@@ -249,39 +326,87 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
 
       <div className={`grid min-h-[60vh] flex-1 gap-4 ${mode === "split" ? "md:grid-cols-2" : ""}`}>
         {mode !== "preview" && (
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={(e) => updateContent(e.target.value)}
-            onBlur={() => void flush()}
-            onPaste={(e) => {
-              const files = filesFrom(e.clipboardData?.files);
-              if (files.length) {
-                e.preventDefault();
-                void attachments.upload(files);
-              }
-            }}
-            onDragOver={(e) => {
-              if (e.dataTransfer.types.includes("Files")) {
-                e.preventDefault();
-                setDragging(true);
-              }
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={(e) => {
-              const files = filesFrom(e.dataTransfer.files);
-              setDragging(false);
-              if (files.length) {
-                e.preventDefault();
-                void attachments.upload(files);
-              }
-            }}
-            autoFocus={!note.content}
-            placeholder="開始寫作…（支援 Markdown：# 標題、**粗體**、- [ ] 待辦、表格…；圖片和檔案可以直接貼上或拖曳進來）"
-            className={`min-h-[60vh] w-full resize-none rounded-xl border bg-surface p-4 font-mono text-[15px] leading-relaxed outline-none focus:border-brand-500 ${
-              dragging ? "border-brand-500 ring-4 ring-brand-100" : "border-stone-200"
-            }`}
-          />
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              value={content}
+              onChange={(e) => {
+                updateContent(e.target.value);
+                wiki.update();
+              }}
+              onKeyDown={(e) => void wiki.onKeyDown(e)}
+              onKeyUp={(e) => {
+                if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) wiki.update();
+              }}
+              onClick={() => wiki.update()}
+              onScroll={() => wiki.close()}
+              onBlur={() => {
+                wiki.close();
+                void flush();
+              }}
+              onPaste={(e) => {
+                const files = filesFrom(e.clipboardData?.files);
+                if (files.length) {
+                  e.preventDefault();
+                  void attachments.upload(files);
+                }
+              }}
+              onDragOver={(e) => {
+                if (e.dataTransfer.types.includes("Files")) {
+                  e.preventDefault();
+                  setDragging(true);
+                }
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                const files = filesFrom(e.dataTransfer.files);
+                setDragging(false);
+                if (files.length) {
+                  e.preventDefault();
+                  void attachments.upload(files);
+                }
+              }}
+              autoFocus={!note.content}
+              placeholder="開始寫作…（支援 Markdown：# 標題、**粗體**、- [ ] 待辦、表格…；輸入 [[ 連結其他筆記；圖片和檔案可以直接貼上或拖曳進來）"
+              className={`min-h-[60vh] w-full resize-none rounded-xl border bg-surface p-4 font-mono text-[15px] leading-relaxed outline-none focus:border-brand-500 ${
+                dragging ? "border-brand-500 ring-4 ring-brand-100" : "border-stone-200"
+              }`}
+            />
+            {wiki.state && (
+              <ul
+                role="listbox"
+                aria-label="連結到筆記"
+                style={{
+                  top: wiki.state.top,
+                  left: Math.min(wiki.state.left, 9999),
+                }}
+                className="absolute z-10 w-72 max-w-[calc(100%-1rem)] overflow-hidden rounded-lg border border-stone-200 bg-surface py-1 text-sm shadow-lg"
+              >
+                {wiki.state.options.length === 0 ? (
+                  <li className="px-3 py-1.5 text-stone-400">輸入筆記標題…</li>
+                ) : (
+                  wiki.state.options.map((o, i) => (
+                    <li
+                      key={o.id || `new-${o.title}`}
+                      role="option"
+                      aria-selected={i === wiki.state!.index}
+                      // mousedown 先阻止 textarea 失焦，才點得到
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        wiki.choose(o);
+                      }}
+                      onMouseEnter={() => wiki.setIndex(i)}
+                      className={`cursor-pointer truncate px-3 py-1.5 ${
+                        i === wiki.state!.index ? "bg-brand-100 text-accent" : ""
+                      }`}
+                    >
+                      {o.isNew ? <>＋ 建立連結「{o.title}」</> : <>📄 {o.title}</>}
+                    </li>
+                  ))
+                )}
+              </ul>
+            )}
+          </div>
         )}
         {mode !== "edit" && (
           <div
@@ -290,13 +415,15 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
             title={mode === "preview" ? "雙擊進入編輯" : undefined}
           >
             {content.trim() ? (
-              <Markdown>{content}</Markdown>
+              <Markdown links={links}>{content}</Markdown>
             ) : (
               <p className="text-stone-400">（空白筆記，雙擊開始編輯）</p>
             )}
           </div>
         )}
       </div>
+
+      <BacklinksPanel title={title} backlinks={backlinks} />
     </div>
   );
 }
