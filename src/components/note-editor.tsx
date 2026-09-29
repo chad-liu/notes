@@ -12,6 +12,7 @@ import type { Backlink } from "@/lib/note-links";
 import { NOTE_TYPES, type Note, type Notebook, type NoteType } from "@/lib/types";
 import BacklinksPanel from "./backlinks-panel";
 import Markdown from "./markdown";
+import ShareDialog, { type ShareInfo } from "./share-dialog";
 import TagInput from "./tag-input";
 import { useAttachmentUpload } from "./use-attachment-upload";
 import { useWikiAutocomplete } from "./use-wiki-autocomplete";
@@ -32,6 +33,7 @@ export default function NoteEditor({
   links,
   backlinks,
   allTags,
+  share: initialShare = null,
 }: {
   note: Note;
   notebooks: Notebook[];
@@ -41,6 +43,8 @@ export default function NoteEditor({
   backlinks: Backlink[];
   /** 既有標籤，給標籤欄位做建議 */
   allTags: string[];
+  /** 目前的分享連結 */
+  share?: ShareInfo;
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
@@ -53,6 +57,8 @@ export default function NoteEditor({
   const [updatedAt, setUpdatedAt] = useState(note.updated_at);
   const [, startDelete] = useTransition();
   const router = useRouter();
+  const [share, setShare] = useState<ShareInfo>(initialShare);
+  const [shareOpen, setShareOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
 
   const pending = useRef<NotePatch>({});
@@ -212,6 +218,24 @@ export default function NoteEditor({
               void attachments.upload(filesFrom(e.target.files));
               e.target.value = "";
             }}
+          />
+          <button
+            onClick={async () => {
+              // 分享的是資料庫裡的內容，先把還沒送出的修改存好
+              await flush();
+              setShareOpen(true);
+            }}
+            title={share ? "分享中（點一下管理連結）" : "產生唯讀連結分享給別人"}
+            className={`rounded-lg px-2 py-1 ring-1 ring-stone-200 ${share ? "bg-brand-100 text-accent" : "bg-surface hover:bg-stone-50"}`}
+          >
+            🔗<span className="hidden sm:inline"> {share ? "分享中" : "分享"}</span>
+          </button>
+          <ShareDialog
+            noteId={note.id}
+            initial={initialShare}
+            open={shareOpen}
+            onClose={() => setShareOpen(false)}
+            onChange={setShare}
           />
           <button
             onClick={async () => {

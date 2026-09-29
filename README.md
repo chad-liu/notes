@@ -11,6 +11,7 @@
 | 🏷️ **標籤管理** | 列出所有標籤與筆記數，可改名、合併、刪除；編輯時自動建議既有標籤 |
 | 🕘 **版本紀錄** | 修改時自動保留舊版（編輯中每 10 分鐘、停下 5 分鐘後再改各留一份，每則最多 50 個），可與目前內容逐行比較、預覽、還原；還原前的內容也會保留 |
 | 🗑️ **垃圾桶** | 刪除的筆記保留 30 天，可還原或永久刪除（連同附件）；刪除後可立即「復原」 |
+| 🔗 **分享筆記** | 產生唯讀連結（可設 1／7／30 天或不限期），對方不用登入就能看（含圖片與附件）、看不到其他筆記；可換新連結或停止分享，「分享中」頁集中管理 |
 | ⬇️ **匯出備份** | 一鍵把所有筆記下載成 Markdown 檔的 zip（依筆記本分資料夾、含附件與 `backup.json`），可直接用 Obsidian 開啟 |
 | 🔍 **搜尋** | 全文檢索（支援中文）：多關鍵字、`-排除`、`"片語"`、`#標籤`，依相關度排序並標示關鍵字；`Ctrl/⌘ + K` 隨時搜尋 |
 | ⚡ **速記** | 一行輸入、`Ctrl/⌘ + Enter` 立即記下，之後可轉成正式筆記 |
@@ -37,6 +38,7 @@
    - [`0006_trash.sql`](supabase/migrations/0006_trash.sql)：垃圾桶（`deleted_at` 欄位、RLS 隱藏垃圾桶裡的筆記、還原與永久刪除）。
    - [`0007_note_versions.sql`](supabase/migrations/0007_note_versions.sql)：版本紀錄（`note_versions` 表、修改時自動存舊版的觸發器、還原函式）。
    - [`0008_notebooks.sql`](supabase/migrations/0008_notebooks.sql)：筆記本管理（每本筆記數、合併、刪除時不改筆記的修改時間）。
+   - [`0009_note_shares.sql`](supabase/migrations/0009_note_shares.sql)：分享筆記（`note_shares` 表、用 token 讀筆記的函式、分享中筆記的附件讀取規則）。
 3. **Authentication → URL Configuration**：
    - **Site URL** 填你的 Vercel 網址，例如 `https://notes-xxx.vercel.app`
    - **Redirect URLs** 加上 `https://notes-xxx.vercel.app/auth/confirm` 與 `http://localhost:3000/auth/confirm`
