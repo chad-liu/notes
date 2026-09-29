@@ -1,5 +1,6 @@
 import "server-only";
 import { XMLParser } from "fast-xml-parser";
+import { safeFetchText } from "./safe-fetch";
 import type { FeedItem } from "./types";
 
 const parser = new XMLParser({
@@ -48,44 +49,16 @@ function safeLink(href: string, base: string) {
   }
 }
 
-/** 阻擋明顯的內網位址，避免被拿來打內部服務 */
-function isBlockedHost(hostname: string) {
-  const h = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-  return (
-    h === "localhost" ||
-    h.endsWith(".localhost") ||
-    h.endsWith(".internal") ||
-    h === "0.0.0.0" ||
-    h === "::1" ||
-    /^127\./.test(h) ||
-    /^10\./.test(h) ||
-    /^192\.168\./.test(h) ||
-    /^169\.254\./.test(h) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(h) ||
-    /^f[cd][0-9a-f]{2}:/.test(h) ||
-    /^fe80:/.test(h)
-  );
-}
-
 export async function fetchFeed(
   url: string,
 ): Promise<{ title: string; items: FeedItem[] } | { error: string }> {
   try {
     const u = new URL(url);
-    if (!["http:", "https:"].includes(u.protocol) || isBlockedHost(u.hostname)) {
-      return { error: "不允許的網址" };
-    }
-    const res = await fetch(u, {
-      headers: {
-        "User-Agent": "PersonalNotesApp/1.0 (+RSS reader)",
-        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
-      },
-      signal: AbortSignal.timeout(8000),
-      next: { revalidate: 600 },
+    const { text: xml } = await safeFetchText(u.toString(), {
+      accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+      maxBytes: MAX_BYTES,
+      timeoutMs: 8000,
     });
-    if (!res.ok) return { error: `HTTP ${res.status}` };
-    const xml = await res.text();
-    if (xml.length > MAX_BYTES) return { error: "內容過大" };
 
     const doc = parser.parse(xml) as Record<string, Record<string, Node>>;
 

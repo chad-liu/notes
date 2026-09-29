@@ -6,6 +6,7 @@ import { requireUser } from "@/lib/supabase/server";
 import { fetchFeed } from "@/lib/rss";
 import { formatDateTime } from "@/lib/format";
 import type { Feed, FeedItem } from "@/lib/types";
+import ClipForm, { ClipSubmitButton } from "@/components/clip-form";
 import FeedForm from "@/components/feed-form";
 
 export const metadata: Metadata = { title: "新聞" };
@@ -36,6 +37,10 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
         <Link href="/notes?type=news" className="ml-auto text-sm text-accent hover:underline">
           已剪藏 {clipCount ?? 0} 則 →
         </Link>
+      </div>
+
+      <div className="mb-4">
+        <ClipForm />
       </div>
 
       <details className="mb-4 rounded-xl border border-stone-200 bg-surface p-4" open={feeds.length === 0}>
@@ -93,9 +98,7 @@ export default async function NewsPage({ searchParams }: PageProps<"/news">) {
                 </div>
               </div>
               <form action={clipNews.bind(null, it)}>
-                <button title="剪藏成筆記" className="shrink-0 rounded-lg px-2 py-1 text-sm ring-1 ring-stone-200 hover:bg-brand-50 hover:ring-brand-500">
-                  ✂️ 剪藏
-                </button>
+                <ClipSubmitButton />
               </form>
             </div>
           </li>

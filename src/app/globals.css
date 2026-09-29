@@ -52,6 +52,12 @@
   --color-red-600: #f87171;
 }
 
+/* Typography 預設替引用加上英文引號，中文內容不需要 */
+.prose :where(blockquote p:first-of-type)::before,
+.prose :where(blockquote p:last-of-type)::after {
+  content: none;
+}
+
 body {
   background: var(--color-canvas);
   color: var(--color-stone-900);

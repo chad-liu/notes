@@ -6,6 +6,7 @@ import { deleteNote, updateNote, type NotePatch } from "@/app/actions/notes";
 import { formatDateTime, parseTags } from "@/lib/format";
 import { NOTE_TYPES, type Note, type Notebook, type NoteType } from "@/lib/types";
 import Markdown from "./markdown";
+import { useAttachmentUpload } from "./use-attachment-upload";
 
 type Mode = "edit" | "split" | "preview";
 type Status = "saved" | "dirty" | "saving" | "error";
@@ -28,6 +29,7 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
   const [status, setStatus] = useState<Status>("saved");
   const [updatedAt, setUpdatedAt] = useState(note.updated_at);
   const [, startDelete] = useTransition();
+  const [dragging, setDragging] = useState(false);
 
   const pending = useRef<NotePatch>({});
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -59,6 +61,27 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
     },
     [flush],
   );
+
+  // 上傳是非同步的，用 ref 取得最新內容，避免覆蓋掉上傳期間打的字
+  const contentRef = useRef(note.content);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const updateContent = useCallback(
+    (next: string) => {
+      contentRef.current = next;
+      setContent(next);
+      queue({ content: next });
+    },
+    [queue],
+  );
+  const attachments = useAttachmentUpload({
+    userId: note.user_id,
+    noteId: note.id,
+    getContent: () => contentRef.current,
+    setContent: updateContent,
+    textareaRef,
+  });
+  const filesFrom = (list: FileList | null | undefined) => Array.from(list ?? []);
 
   // 離開頁面前提醒 / 儲存
   useEffect(() => {
@@ -98,7 +121,7 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
           ← 返回
         </Link>
         <span className={`ml-2 text-xs ${status === "error" ? "text-red-600" : "text-stone-400"}`}>
-          {statusText}
+          {attachments.uploading ? `上傳中（${attachments.uploading}）…` : statusText}
         </span>
         <div className="ml-auto flex items-center gap-1">
           <div className="flex overflow-hidden rounded-lg ring-1 ring-stone-200">
@@ -114,6 +137,23 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
               </button>
             ))}
           </div>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            title="插入圖片或附件（也可以直接貼上或拖曳到編輯區）"
+            className="rounded-lg bg-surface px-2 py-1 ring-1 ring-stone-200 hover:bg-stone-50"
+          >
+            📎<span className="hidden sm:inline"> 附件</span>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            hidden
+            onChange={(e) => {
+              void attachments.upload(filesFrom(e.target.files));
+              e.target.value = "";
+            }}
+          />
           <button
             onClick={() => {
               setPinned(!pinned);
@@ -137,6 +177,15 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
           </button>
         </div>
       </div>
+
+      {attachments.error && (
+        <p className="mb-2 flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+          {attachments.error}
+          <button onClick={attachments.clearError} className="ml-auto" aria-label="關閉">
+            ✕
+          </button>
+        </p>
+      )}
 
       <input
         value={title}
@@ -201,15 +250,37 @@ export default function NoteEditor({ note, notebooks }: { note: Note; notebooks:
       <div className={`grid min-h-[60vh] flex-1 gap-4 ${mode === "split" ? "md:grid-cols-2" : ""}`}>
         {mode !== "preview" && (
           <textarea
+            ref={textareaRef}
             value={content}
-            onChange={(e) => {
-              setContent(e.target.value);
-              queue({ content: e.target.value });
-            }}
+            onChange={(e) => updateContent(e.target.value)}
             onBlur={() => void flush()}
+            onPaste={(e) => {
+              const files = filesFrom(e.clipboardData?.files);
+              if (files.length) {
+                e.preventDefault();
+                void attachments.upload(files);
+              }
+            }}
+            onDragOver={(e) => {
+              if (e.dataTransfer.types.includes("Files")) {
+                e.preventDefault();
+                setDragging(true);
+              }
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+              const files = filesFrom(e.dataTransfer.files);
+              setDragging(false);
+              if (files.length) {
+                e.preventDefault();
+                void attachments.upload(files);
+              }
+            }}
             autoFocus={!note.content}
-            placeholder="開始寫作…（支援 Markdown：# 標題、**粗體**、- [ ] 待辦、表格…）"
-            className="min-h-[60vh] w-full resize-none rounded-xl border border-stone-200 bg-surface p-4 font-mono text-[15px] leading-relaxed outline-none focus:border-brand-500"
+            placeholder="開始寫作…（支援 Markdown：# 標題、**粗體**、- [ ] 待辦、表格…；圖片和檔案可以直接貼上或拖曳進來）"
+            className={`min-h-[60vh] w-full resize-none rounded-xl border bg-surface p-4 font-mono text-[15px] leading-relaxed outline-none focus:border-brand-500 ${
+              dragging ? "border-brand-500 ring-4 ring-brand-100" : "border-stone-200"
+            }`}
           />
         )}
         {mode !== "edit" && (
