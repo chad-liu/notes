@@ -6,6 +6,7 @@ import { renameNoteLinks } from "@/app/actions/links";
 import { updateNote, type NotePatch } from "@/app/actions/notes";
 import { trashNote } from "@/app/actions/trash";
 import { formatDateTime, parseTags } from "@/lib/format";
+import { setTaskChecked } from "@/lib/todos";
 import type { Backlink } from "@/lib/note-links";
 import { NOTE_TYPES, type Note, type Notebook, type NoteType } from "@/lib/types";
 import BacklinksPanel from "./backlinks-panel";
@@ -94,6 +95,14 @@ export default function NoteEditor({
       queue({ content: next });
     },
     [queue],
+  );
+  // 預覽裡勾選待辦：改掉那一行的 [ ] / [x]
+  const toggleTask = useCallback(
+    (line: number, checked: boolean) => {
+      const next = setTaskChecked(contentRef.current, line, checked);
+      if (next !== null) updateContent(next);
+    },
+    [updateContent],
   );
   const attachments = useAttachmentUpload({
     userId: note.user_id,
@@ -421,7 +430,9 @@ export default function NoteEditor({
             title={mode === "preview" ? "雙擊進入編輯" : undefined}
           >
             {content.trim() ? (
-              <Markdown links={links}>{content}</Markdown>
+              <Markdown links={links} onToggleTask={toggleTask}>
+                {content}
+              </Markdown>
             ) : (
               <p className="text-stone-400">（空白筆記，雙擊開始編輯）</p>
             )}

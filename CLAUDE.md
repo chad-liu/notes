@@ -42,11 +42,13 @@ npx next typegen       # 新增或改名路由後，重新產生路由型別（P
 
 **垃圾桶**（0006）：`notes.deleted_at` 不是 null 就在垃圾桶裡。notes 的 RLS 只讓一般存取看到、改到 `deleted_at is null` 的筆記，所以新的查詢不需要自己排除垃圾桶；但 `security definer` 函式不受 RLS 限制，新寫的必須自己加 `deleted_at is null`。移到垃圾桶、還原、列出、永久刪除都走 `trash_note`／`restore_note`／`trashed_notes`／`purge_notes`（`lib/trash.ts`、`app/actions/trash.ts`），用戶端無法直接改 `deleted_at`。永久刪除會一併刪附件；超過 30 天的在打開 `/trash` 時清掉（沒有排程）。日誌「每天一篇」的唯一索引只算不在垃圾桶裡的。
 
+**待辦**：沒有獨立的資料表，就是筆記內容裡的 GFM task list。解析與改寫都用 `lib/todos.ts`（`parseTasks`、`setTaskChecked`，行號從 0 開始，略過程式碼區塊），`/todos` 總覽與筆記預覽的勾選（`Markdown` 的 `onToggleTask`，用 li 的原始碼行號對應）共用。總覽的 `toggleTodo` 是「讀內容 → 改一行 → 寫回」，寫入時加上 `updated_at` 相同的條件、衝突就重讀重試，否則同時勾同一則筆記的不同項目會互相覆蓋。
+
 **標籤**存在 `notes.tags`（text[]）。統計用 `tag_counts()`（`lib/tags.ts` 的 `loadTagCounts`，側邊欄、`/tags`、編輯器的標籤建議共用），改名／合併／刪除用 `replace_tag`（`app/actions/tags.ts`）。標籤名稱的規則以 `parseTags` 為準（不能有空白或逗號）。
 
 **資料變更**都是 `src/app/actions/` 裡的 Server Actions，通常會 `revalidatePath("/", "layout")` 讓側邊欄（筆記本、標籤）更新。筆記編輯器（`components/note-editor.tsx`）透過 debounce 的修改佇列呼叫 `updateNote` 自動儲存；每次儲存後伺服器端 props（`links`、`backlinks`）會更新，本地的編輯狀態則保留。
 
-**附件。** 檔案由瀏覽器直接上傳到私有 Storage bucket（`attachments`，路徑 `<user_id>/<note_id>/<uuid>.<副檔名>`，見 `lib/attachments.ts`），不經過伺服器，因為 Vercel 與 Server Actions 有請求大小上限。筆記以 `/files/<路徑>` 引用附件；`src/app/files/[...path]/route.ts` 檢查 session 後轉址到 1 小時有效的簽名網址，所以連結不會過期、bucket 也保持私有。`deleteNote` 會一併刪除該筆記的 Storage 資料夾。
+**附件。** 檔案由瀏覽器直接上傳到私有 Storage bucket（`attachments`，路徑 `<user_id>/<note_id>/<uuid>.<副檔名>`，見 `lib/attachments.ts`），不經過伺服器，因為 Vercel 與 Server Actions 有請求大小上限。筆記以 `/files/<路徑>` 引用附件；`src/app/files/[...path]/route.ts` 檢查 session 後轉址到 1 小時有效的簽名網址，所以連結不會過期、bucket 也保持私有。附件在筆記永久刪除時（`lib/trash.ts` 的 `purgeTrash`）一併刪除，移到垃圾桶時會保留。
 
 **抓取使用者提供的網址。** 伺服器端抓取任何使用者提供的網址（RSS、網頁剪藏）都必須經過 `lib/safe-fetch.ts`：它會解析 DNS，並在每一次轉址都用 `net.BlockList` 擋掉私有／保留位址，限制回應大小，並解碼 Big5/GBK。`lib/clip.ts` 用 Mozilla Readability（跑在 linkedom 上）擷取文章，再用 turndown 轉成 Markdown。
 

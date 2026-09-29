@@ -37,6 +37,7 @@ export default function Sidebar({
         <NavLink href="/journal">📔 日誌</NavLink>
         <NavLink href="/news">📰 新聞</NavLink>
         <NavLink href="/notes?pinned=1">📌 釘選</NavLink>
+        <NavLink href="/todos">☑️ 待辦</NavLink>
       </div>
 
       <div>
