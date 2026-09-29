@@ -7,6 +7,7 @@
 | 📝 **筆記** | Markdown 編輯器（編輯 / 分割 / 預覽）、自動儲存、筆記本、標籤、釘選、圖片與附件（按鈕、貼上、拖曳） |
 | 🔗 **筆記連結** | `[[筆記標題]]` 或 `[[標題\|顯示文字]]` 互相連結，輸入 `[[` 會跳出標題建議；每則筆記下方列出「連到這則筆記」的反向連結；改標題時可一併更新其他筆記裡的連結 |
 | ☑️ **待辦** | 所有筆記裡的 `- [ ]` 集中在一頁，可篩選、直接勾選（會改回原本的筆記）；筆記預覽裡的待辦也能直接勾 |
+| 📓 **筆記本管理** | 顯示每本筆記數與「未分類」，可建立、改名（同名會提醒）、合併到另一本、刪除（筆記保留並改成未分類） |
 | 🏷️ **標籤管理** | 列出所有標籤與筆記數，可改名、合併、刪除；編輯時自動建議既有標籤 |
 | 🕘 **版本紀錄** | 修改時自動保留舊版（編輯中每 10 分鐘、停下 5 分鐘後再改各留一份，每則最多 50 個），可與目前內容逐行比較、預覽、還原；還原前的內容也會保留 |
 | 🗑️ **垃圾桶** | 刪除的筆記保留 30 天，可還原或永久刪除（連同附件）；刪除後可立即「復原」 |
@@ -35,6 +36,7 @@
    - [`0005_tags.sql`](supabase/migrations/0005_tags.sql)：標籤管理（統計、改名／合併、刪除）。
    - [`0006_trash.sql`](supabase/migrations/0006_trash.sql)：垃圾桶（`deleted_at` 欄位、RLS 隱藏垃圾桶裡的筆記、還原與永久刪除）。
    - [`0007_note_versions.sql`](supabase/migrations/0007_note_versions.sql)：版本紀錄（`note_versions` 表、修改時自動存舊版的觸發器、還原函式）。
+   - [`0008_notebooks.sql`](supabase/migrations/0008_notebooks.sql)：筆記本管理（每本筆記數、合併、刪除時不改筆記的修改時間）。
 3. **Authentication → URL Configuration**：
    - **Site URL** 填你的 Vercel 網址，例如 `https://notes-xxx.vercel.app`
    - **Redirect URLs** 加上 `https://notes-xxx.vercel.app/auth/confirm` 與 `http://localhost:3000/auth/confirm`

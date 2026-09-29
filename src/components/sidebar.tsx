@@ -10,13 +10,19 @@ import ThemeToggle from "./theme-toggle";
 
 export default function Sidebar({
   notebooks,
+  notebookCounts = {},
   tags,
   email,
 }: {
   notebooks: Notebook[];
+  /** 每本的筆記數（"none" 是未分類） */
+  notebookCounts?: Record<string, number>;
   tags: string[];
   email?: string;
 }) {
+  // 讀不到統計（例如還沒執行 migration）時就不顯示數字，免得全部顯示 0
+  const hasCounts = Object.keys(notebookCounts).length > 0;
+
   return (
     <nav className="flex min-h-full flex-col gap-6 p-4 text-sm">
       <Link href="/notes" className="flex items-center gap-2 px-2 text-lg font-bold">
@@ -41,13 +47,29 @@ export default function Sidebar({
       </div>
 
       <div>
-        <h3 className="mb-1 px-2 text-xs font-semibold tracking-wide text-stone-500">筆記本</h3>
+        <div className="mb-1 flex items-baseline justify-between px-2">
+          <h3 className="text-xs font-semibold tracking-wide text-stone-500">筆記本</h3>
+          <Link href="/notebooks" aria-label="管理筆記本" className="text-xs text-accent hover:underline">
+            管理
+          </Link>
+        </div>
         <div className="space-y-0.5">
           {notebooks.map((nb) => (
             <NavLink key={nb.id} href={`/notes?notebook=${nb.id}`}>
-              📓 {nb.name}
+              <span className="flex items-baseline gap-2">
+                <span className="min-w-0 flex-1 truncate">📓 {nb.name}</span>
+                {hasCounts && <span className="text-xs text-stone-400">{notebookCounts[nb.id] ?? 0}</span>}
+              </span>
             </NavLink>
           ))}
+          {notebooks.length > 0 && (notebookCounts.none ?? 0) > 0 && (
+            <NavLink href="/notes?notebook=none">
+              <span className="flex items-baseline gap-2">
+                <span className="min-w-0 flex-1 truncate">📂 未分類</span>
+                <span className="text-xs text-stone-400">{notebookCounts.none}</span>
+              </span>
+            </NavLink>
+          )}
         </div>
         <form action={createNotebook} className="mt-2 flex gap-1 px-1">
           <input
@@ -65,7 +87,7 @@ export default function Sidebar({
         <div>
           <div className="mb-1 flex items-baseline justify-between px-2">
             <h3 className="text-xs font-semibold tracking-wide text-stone-500">標籤</h3>
-            <Link href="/tags" className="text-xs text-accent hover:underline">
+            <Link href="/tags" aria-label="管理標籤" className="text-xs text-accent hover:underline">
               管理
             </Link>
           </div>
@@ -89,6 +111,7 @@ export default function Sidebar({
       )}
 
       <div className="mt-auto space-y-2 border-t border-stone-200 pt-3">
+        <NavLink href="/notebooks">📓 筆記本管理</NavLink>
         <NavLink href="/tags">🏷️ 標籤管理</NavLink>
         <NavLink href="/export">⬇️ 匯出備份</NavLink>
         <NavLink href="/trash">🗑️ 垃圾桶</NavLink>
@@ -96,9 +119,7 @@ export default function Sidebar({
         <ThemeToggle />
         <p className="truncate px-2 text-xs text-stone-500">{email}</p>
         <form action={signOut}>
-          <button className="mt-1 w-full rounded-md px-2 py-1 text-left text-stone-600 hover:bg-stone-200">
-            登出
-          </button>
+          <button className="mt-1 w-full rounded-md px-2 py-1 text-left text-stone-600 hover:bg-stone-200">登出</button>
         </form>
       </div>
     </nav>
