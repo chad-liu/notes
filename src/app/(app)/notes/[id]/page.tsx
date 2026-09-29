@@ -5,6 +5,7 @@ import { loadNoteLinks } from "@/lib/note-links";
 import { requireUser } from "@/lib/supabase/server";
 import { loadShare } from "@/lib/shares";
 import { loadTagCounts } from "@/lib/tags";
+import { loadTemplates } from "@/lib/templates-server";
 import { loadTrash } from "@/lib/trash";
 import type { Note, Notebook } from "@/lib/types";
 import NoteEditor from "@/components/note-editor";
@@ -38,10 +39,12 @@ export default async function NotePage({ params, searchParams }: PageProps<"/not
     if (trashed) redirect(`/trash/${id}`);
     notFound();
   }
-  const [{ links, backlinks }, tagCounts, share] = await Promise.all([
+  const [{ links, backlinks }, tagCounts, share, templates] = await Promise.all([
     loadNoteLinks(supabase, note),
     loadTagCounts(supabase),
     loadShare(supabase, note.id),
+    // 範本只在內容還是空的時候用得到
+    note.content.trim() ? Promise.resolve([]) : loadTemplates(supabase),
   ]);
 
   return (
@@ -65,6 +68,7 @@ export default async function NotePage({ params, searchParams }: PageProps<"/not
         backlinks={backlinks}
         allTags={tagCounts.map((t) => t.tag)}
         share={share && { token: share.token, expires_at: share.expires_at, created_at: share.created_at }}
+        templates={templates}
       />
     </>
   );
