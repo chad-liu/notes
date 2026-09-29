@@ -78,6 +78,7 @@ export default function Sidebar({
       )}
 
       <div className="mt-auto space-y-2 border-t border-stone-200 pt-3">
+        <NavLink href="/export">⬇️ 匯出備份</NavLink>
         <InstallButton />
         <ThemeToggle />
         <p className="truncate px-2 text-xs text-stone-500">{email}</p>
