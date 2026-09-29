@@ -6,10 +6,12 @@
 | --- | --- |
 | 📝 **筆記** | Markdown 編輯器（編輯 / 分割 / 預覽）、自動儲存、筆記本、標籤、釘選、圖片與附件（按鈕、貼上、拖曳） |
 | 🔗 **筆記連結** | `[[筆記標題]]` 或 `[[標題\|顯示文字]]` 互相連結，輸入 `[[` 會跳出標題建議；每則筆記下方列出「連到這則筆記」的反向連結；改標題時可一併更新其他筆記裡的連結 |
+| 🏷️ **標籤管理** | 列出所有標籤與筆記數，可改名、合併、刪除；編輯時自動建議既有標籤 |
+| 🗑️ **垃圾桶** | 刪除的筆記保留 30 天，可還原或永久刪除（連同附件）；刪除後可立即「復原」 |
 | ⬇️ **匯出備份** | 一鍵把所有筆記下載成 Markdown 檔的 zip（依筆記本分資料夾、含附件與 `backup.json`），可直接用 Obsidian 開啟 |
 | 🔍 **搜尋** | 全文檢索（支援中文）：多關鍵字、`-排除`、`"片語"`、`#標籤`，依相關度排序並標示關鍵字；`Ctrl/⌘ + K` 隨時搜尋 |
 | ⚡ **速記** | 一行輸入、`Ctrl/⌘ + Enter` 立即記下，之後可轉成正式筆記 |
-| 📔 **日誌** | 月曆檢視，每天一篇，點日期即可寫 |
+| 📔 **日誌** | 月曆（格子裡顯示當天標題或開頭）與全年檢視，本月／今年寫了幾天、目前與最長連續天數；每天一篇，點日期即可寫 |
 | 📰 **新聞** | 訂閱 RSS / Atom，彙整閱讀；貼上網址或從 RSS 一鍵「剪藏」整篇文章成筆記 |
 
 | 📲 **App** | 可加到手機主畫面（PWA）：長按圖示有速記 / 日誌 / 剪藏捷徑，Android 可從其他 App「分享」進來，離線時顯示提示頁 |
@@ -28,6 +30,8 @@
    - [`0002_attachments.sql`](supabase/migrations/0002_attachments.sql)：建立私有的 `attachments` Storage bucket（單檔上限 25 MB），每個人只能存取自己的檔案。
    - [`0003_search.sql`](supabase/migrations/0003_search.sql)：全文檢索（`pg_trgm` 索引 + `search_notes` 函式）。
    - [`0004_note_links.sql`](supabase/migrations/0004_note_links.sql)：筆記連結（標題解析、反向連結、改名時更新連結）。
+   - [`0005_tags.sql`](supabase/migrations/0005_tags.sql)：標籤管理（統計、改名／合併、刪除）。
+   - [`0006_trash.sql`](supabase/migrations/0006_trash.sql)：垃圾桶（`deleted_at` 欄位、RLS 隱藏垃圾桶裡的筆記、還原與永久刪除）。
 3. **Authentication → URL Configuration**：
    - **Site URL** 填你的 Vercel 網址，例如 `https://notes-xxx.vercel.app`
    - **Redirect URLs** 加上 `https://notes-xxx.vercel.app/auth/confirm` 與 `http://localhost:3000/auth/confirm`

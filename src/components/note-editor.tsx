@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { renameNoteLinks } from "@/app/actions/links";
-import { deleteNote, updateNote, type NotePatch } from "@/app/actions/notes";
+import { updateNote, type NotePatch } from "@/app/actions/notes";
+import { trashNote } from "@/app/actions/trash";
 import { formatDateTime, parseTags } from "@/lib/format";
 import type { Backlink } from "@/lib/note-links";
 import { NOTE_TYPES, type Note, type Notebook, type NoteType } from "@/lib/types";
@@ -213,9 +214,10 @@ export default function NoteEditor({
           </button>
           <button
             onClick={() => {
-              if (confirm("確定刪除這則筆記？")) {
+              if (confirm("把這則筆記移到垃圾桶？30 天內可以從垃圾桶還原。")) {
                 pending.current = {};
-                startDelete(() => deleteNote(note.id, backHref[type]));
+                if (timer.current) clearTimeout(timer.current);
+                startDelete(() => trashNote(note.id, backHref[type]));
               }
             }}
             className="rounded-lg bg-surface px-2 py-1 text-red-600 ring-1 ring-stone-200 hover:bg-red-50"
