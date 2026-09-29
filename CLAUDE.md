@@ -46,6 +46,8 @@ npx next typegen       # 新增或改名路由後，重新產生路由型別（P
 
 **待辦**：沒有獨立的資料表，就是筆記內容裡的 GFM task list。解析與改寫都用 `lib/todos.ts`（`parseTasks`、`setTaskChecked`，行號從 0 開始，略過程式碼區塊），`/todos` 總覽與筆記預覽的勾選（`Markdown` 的 `onToggleTask`，用 li 的原始碼行號對應）共用。總覽的 `toggleTodo` 是「讀內容 → 改一行 → 寫回」，寫入時加上 `updated_at` 相同的條件、衝突就重讀重試，否則同時勾同一則筆記的不同項目會互相覆蓋。
 
+**筆記本**（0008）：筆記數用 `notebook_counts()`（`lib/notebooks.ts`，key `"none"` 是未分類；列表頁用 `/notes?notebook=none`）。合併與刪除走 `merge_notebook`／`delete_notebook`，不要直接刪 notebooks 列：外鍵 `on delete set null` 會觸發 `touch_updated_at`，讓整本筆記的修改時間都變成現在。筆記本名稱不分大小寫不能重複（`app/actions/notebooks.ts` 檢查）。
+
 **標籤**存在 `notes.tags`（text[]）。統計用 `tag_counts()`（`lib/tags.ts` 的 `loadTagCounts`，側邊欄、`/tags`、編輯器的標籤建議共用），改名／合併／刪除用 `replace_tag`（`app/actions/tags.ts`）。標籤名稱的規則以 `parseTags` 為準（不能有空白或逗號）。
 
 **資料變更**都是 `src/app/actions/` 裡的 Server Actions，通常會 `revalidatePath("/", "layout")` 讓側邊欄（筆記本、標籤）更新。筆記編輯器（`components/note-editor.tsx`）透過 debounce 的修改佇列呼叫 `updateNote` 自動儲存；每次儲存後伺服器端 props（`links`、`backlinks`）會更新，本地的編輯狀態則保留。
@@ -67,4 +69,5 @@ npx next typegen       # 新增或改名路由後，重新產生路由型別（P
 - 日期請用 `formatDateTime`（`lib/format.ts`）格式化，它用 `formatToParts` 組字串：Node 和 Chrome 的 ICU 在 `Intl.DateTimeFormat.format` 輸出的空白字元不同，會造成 hydration 不一致。日期以 `Asia/Taipei` 顯示。
 - 用程式在編輯器 textarea 插入文字並移動游標時，要用 `flushSync` 更新並同步設定選取範圍；若用 `requestAnimationFrame` 移動游標，期間打的字會亂掉。
 - 編輯器的鍵盤處理在輸入法組字時必須忽略按鍵（`nativeEvent.isComposing`／keyCode 229）；Enter 和方向鍵是注音／拼音選字在用的。
+- Client component 在 `startTransition(async () => …)` 裡 `await` Server Action 之後再更新 state，要再包一層 `startTransition`，不然提示訊息會比伺服器送來的新資料早一步顯示（React 19 的行為）。
 - `Content-Disposition` 的下載檔名只能用 ASCII；部分 Chromium 會忽略 UTF-8 的 `filename*`，把檔案命名成「download」。

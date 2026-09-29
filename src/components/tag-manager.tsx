@@ -35,13 +35,16 @@ export default function TagManager({ tags }: { tags: TagCount[] }) {
     const merging = byTag.has(next);
     startTransition(async () => {
       const res = await renameTag(tag, draft);
-      if (!res.ok) return setMessage({ ok: false, text: res.error });
-      setEditing(null);
-      setMessage({
-        ok: true,
-        text: merging
-          ? `已把 #${tag} 合併到 #${next}（更新 ${res.changed} 則筆記）`
-          : `已把 #${tag} 改名為 #${next}（更新 ${res.changed} 則筆記）`,
+      // await 之後的更新要再包一次 transition，才會跟伺服器送來的新列表一起顯示
+      startTransition(() => {
+        if (!res.ok) return setMessage({ ok: false, text: res.error });
+        setEditing(null);
+        setMessage({
+          ok: true,
+          text: merging
+            ? `已把 #${tag} 合併到 #${next}（更新 ${res.changed} 則筆記）`
+            : `已把 #${tag} 改名為 #${next}（更新 ${res.changed} 則筆記）`,
+        });
       });
     });
   };
@@ -51,8 +54,10 @@ export default function TagManager({ tags }: { tags: TagCount[] }) {
     setMessage(null);
     startTransition(async () => {
       const res = await deleteTag(tag);
-      setMessage(
-        res.ok ? { ok: true, text: `已從 ${res.changed} 則筆記移除 #${tag}` } : { ok: false, text: res.error },
+      startTransition(() =>
+        setMessage(
+          res.ok ? { ok: true, text: `已從 ${res.changed} 則筆記移除 #${tag}` } : { ok: false, text: res.error },
+        ),
       );
     });
   };

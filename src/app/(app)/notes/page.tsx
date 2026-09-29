@@ -7,6 +7,7 @@ import { parseQuery } from "@/lib/search";
 import { NOTE_TYPES, typeIcon, type NoteType } from "@/lib/types";
 import Highlight from "@/components/highlight";
 import NotebookHeader from "@/components/notebook-header";
+import { loadNotebookCounts } from "@/lib/notebooks";
 
 export const metadata: Metadata = { title: "筆記" };
 
@@ -27,6 +28,9 @@ export default async function NotesPage({ searchParams }: PageProps<"/notes">) {
   const { supabase } = await requireUser();
 
   const type = NOTE_TYPES.find((t) => t.type === sp.type)?.type;
+  // notebook=none 是「未分類」；其他不是 uuid 的值直接忽略
+  const unfiled = sp.notebook === "none";
+  const notebookId = sp.notebook && /^[0-9a-f-]{36}$/i.test(sp.notebook) ? sp.notebook : undefined;
   const parsed = parseQuery(sp.q ?? "");
   const searching = parsed.terms.length + parsed.excluded.length + parsed.tags.length > 0;
 
@@ -37,7 +41,7 @@ export default async function NotesPage({ searchParams }: PageProps<"/notes">) {
           terms: parsed.terms,
           excluded: parsed.excluded,
           p_type: type ?? null,
-          p_notebook: sp.notebook || null,
+          p_notebook: notebookId ?? null,
           p_tags: [...parsed.tags, ...(sp.tag ? [sp.tag] : [])],
           p_pinned: Boolean(sp.pinned),
           p_limit: 100,
@@ -55,7 +59,8 @@ export default async function NotesPage({ searchParams }: PageProps<"/notes">) {
           .order("updated_at", { ascending: false })
           .limit(200);
         if (type) query = query.eq("type", type);
-        if (sp.notebook) query = query.eq("notebook_id", sp.notebook);
+        if (notebookId) query = query.eq("notebook_id", notebookId);
+        if (unfiled) query = query.is("notebook_id", null);
         if (sp.tag) query = query.contains("tags", [sp.tag]);
         if (sp.pinned) query = query.eq("pinned", true);
         return query.then(({ data, error }) => ({
@@ -65,24 +70,27 @@ export default async function NotesPage({ searchParams }: PageProps<"/notes">) {
         }));
       })();
 
-  const [{ rows, total, error }, notebookRes] = await Promise.all([
+  const [{ rows, total, error }, notebookRes, counts] = await Promise.all([
     rowsPromise,
-    sp.notebook
-      ? supabase.from("notebooks").select("id, name").eq("id", sp.notebook).maybeSingle()
+    notebookId
+      ? supabase.from("notebooks").select("id, name").eq("id", notebookId).maybeSingle()
       : Promise.resolve({ data: null }),
+    notebookId || unfiled ? loadNotebookCounts(supabase) : Promise.resolve({} as Record<string, number>),
   ]);
   const hl = parsed.terms;
   const notebook = notebookRes.data as { id: string; name: string } | null;
 
   const heading = notebook
     ? `📓 ${notebook.name}`
-    : sp.tag
-      ? `#${sp.tag}`
-      : sp.pinned
-        ? "📌 釘選"
-        : type
-          ? `${typeIcon(type)} ${NOTE_TYPES.find((t) => t.type === type)!.label}`
-          : "📚 所有筆記";
+    : unfiled && !searching
+      ? "📂 未分類"
+      : sp.tag
+        ? `#${sp.tag}`
+        : sp.pinned
+          ? "📌 釘選"
+          : type
+            ? `${typeIcon(type)} ${NOTE_TYPES.find((t) => t.type === type)!.label}`
+            : "📚 所有筆記";
 
   const filterHref = (t?: NoteType) => {
     const p = new URLSearchParams();
@@ -96,9 +104,19 @@ export default async function NotesPage({ searchParams }: PageProps<"/notes">) {
     <div className="mx-auto max-w-4xl p-4 md:p-8">
       <div className="mb-4 flex flex-wrap items-center gap-3">
         {notebook ? (
-          <NotebookHeader id={notebook.id} name={notebook.name} />
+          <NotebookHeader id={notebook.id} name={notebook.name} count={counts[notebook.id] ?? 0} />
         ) : (
-          <h1 className="text-2xl font-bold">{heading}</h1>
+          <>
+            <h1 className="text-2xl font-bold">{heading}</h1>
+            {unfiled && !searching && (
+              <span className="text-sm text-stone-500">
+                {counts.none ?? 0} 則 ·{" "}
+                <Link href="/notebooks" className="hover:text-accent">
+                  管理筆記本
+                </Link>
+              </span>
+            )}
+          </>
         )}
         <form action={createNote.bind(null, type ?? "note", notebook?.id ?? null)} className="ml-auto">
           <button className="rounded-full bg-brand-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-700">
@@ -109,7 +127,7 @@ export default async function NotesPage({ searchParams }: PageProps<"/notes">) {
 
       <form action="/notes" className="mb-3">
         {type && <input type="hidden" name="type" value={type} />}
-        {sp.notebook && <input type="hidden" name="notebook" value={sp.notebook} />}
+        {notebookId && <input type="hidden" name="notebook" value={notebookId} />}
         {sp.tag && <input type="hidden" name="tag" value={sp.tag} />}
         <input
           name="q"
@@ -121,7 +139,9 @@ export default async function NotesPage({ searchParams }: PageProps<"/notes">) {
 
       {!sp.notebook && !sp.tag && !sp.pinned && (
         <div className="mb-4 flex flex-wrap gap-2 text-sm">
-          <FilterChip href={filterHref()} active={!type}>全部</FilterChip>
+          <FilterChip href={filterHref()} active={!type}>
+            全部
+          </FilterChip>
           {NOTE_TYPES.map((t) => (
             <FilterChip key={t.type} href={filterHref(t.type)} active={type === t.type}>
               {t.icon} {t.label}
@@ -132,8 +152,7 @@ export default async function NotesPage({ searchParams }: PageProps<"/notes">) {
 
       {searching && !error && (
         <p className="mb-3 text-sm text-stone-500">
-          找到 <b className="text-stone-700">{total}</b> 則
-          {total > rows.length && `，顯示最相關的 ${rows.length} 則`}
+          找到 <b className="text-stone-700">{total}</b> 則{total > rows.length && `，顯示最相關的 ${rows.length} 則`}
           <span className="ml-2 hidden text-xs text-stone-400 sm:inline">
             語法：空白分隔＝都要出現、-詞＝排除、&quot;片語&quot;、#標籤
           </span>
@@ -161,9 +180,7 @@ export default async function NotesPage({ searchParams }: PageProps<"/notes">) {
                   {n.title ? <Highlight text={n.title} terms={hl} /> : "(未命名)"}
                 </h2>
                 {n.pinned && <span title="已釘選">📌</span>}
-                <span className="ml-auto shrink-0 text-xs text-stone-400">
-                  {formatDateTime(n.updated_at)}
-                </span>
+                <span className="ml-auto shrink-0 text-xs text-stone-400">{formatDateTime(n.updated_at)}</span>
               </div>
               {n.preview && (
                 <p className="mt-1 line-clamp-2 text-sm text-stone-600">
@@ -192,7 +209,9 @@ function FilterChip({ href, active, children }: { href: string; active: boolean;
     <Link
       href={href}
       className={`rounded-full px-3 py-1 ring-1 ${
-        active ? "bg-brand-600 text-white ring-brand-600" : "bg-surface text-stone-600 ring-stone-200 hover:ring-brand-500"
+        active
+          ? "bg-brand-600 text-white ring-brand-600"
+          : "bg-surface text-stone-600 ring-stone-200 hover:ring-brand-500"
       }`}
     >
       {children}
