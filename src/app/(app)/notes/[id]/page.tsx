@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { loadNoteLinks } from "@/lib/note-links";
 import { requireUser } from "@/lib/supabase/server";
+import { loadTagCounts } from "@/lib/tags";
 import type { Note, Notebook } from "@/lib/types";
 import NoteEditor from "@/components/note-editor";
 
@@ -26,7 +27,7 @@ export default async function NotePage({ params }: PageProps<"/notes/[id]">) {
     supabase.from("notebooks").select("id, name, created_at").order("name"),
   ]);
   if (!note) notFound();
-  const { links, backlinks } = await loadNoteLinks(supabase, note);
+  const [{ links, backlinks }, tagCounts] = await Promise.all([loadNoteLinks(supabase, note), loadTagCounts(supabase)]);
 
   return (
     <NoteEditor
@@ -35,6 +36,7 @@ export default async function NotePage({ params }: PageProps<"/notes/[id]">) {
       notebooks={(notebooks ?? []) as Notebook[]}
       links={links}
       backlinks={backlinks}
+      allTags={tagCounts.map((t) => t.tag)}
     />
   );
 }

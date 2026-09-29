@@ -9,6 +9,7 @@ import type { Backlink } from "@/lib/note-links";
 import { NOTE_TYPES, type Note, type Notebook, type NoteType } from "@/lib/types";
 import BacklinksPanel from "./backlinks-panel";
 import Markdown from "./markdown";
+import TagInput from "./tag-input";
 import { useAttachmentUpload } from "./use-attachment-upload";
 import { useWikiAutocomplete } from "./use-wiki-autocomplete";
 
@@ -27,6 +28,7 @@ export default function NoteEditor({
   notebooks,
   links,
   backlinks,
+  allTags,
 }: {
   note: Note;
   notebooks: Notebook[];
@@ -34,6 +36,8 @@ export default function NoteEditor({
   links: Record<string, string>;
   /** 連到這則筆記的其他筆記 */
   backlinks: Backlink[];
+  /** 既有標籤，給標籤欄位做建議 */
+  allTags: string[];
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
@@ -301,15 +305,15 @@ export default function NoteEditor({
             </option>
           ))}
         </select>
-        <input
+        <TagInput
           value={tagsText}
-          onChange={(e) => {
-            setTagsText(e.target.value);
-            queue({ tags: parseTags(e.target.value) }, 1200);
+          onChange={(next) => {
+            setTagsText(next);
+            queue({ tags: parseTags(next) }, 1200);
           }}
           onBlur={() => void flush()}
-          placeholder="標籤（以逗號或空白分隔）"
-          className="min-w-40 flex-1 rounded-md border border-stone-200 bg-surface px-2 py-1 outline-none focus:border-brand-500"
+          allTags={allTags}
+          className="min-w-40 flex-1"
         />
         {note.journal_date && <span className="text-xs">📅 {note.journal_date}</span>}
         {note.source_url && (
