@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useRef } from "react";
 import { useFormStatus } from "react-dom";
 import { createQuickNote } from "@/app/actions/notes";
@@ -16,14 +17,23 @@ function Submit() {
   );
 }
 
-export default function QuickForm() {
+export default function QuickForm({
+  defaultValue,
+  afterSave,
+}: {
+  defaultValue?: string;
+  /** 儲存後前往的頁面（例如從分享進來時回到速記列表） */
+  afterSave?: string;
+}) {
   const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
   return (
     <form
       ref={formRef}
       action={async (fd) => {
         await createQuickNote(fd);
         formRef.current?.reset();
+        if (afterSave) router.push(afterSave);
       }}
       className="rounded-xl border border-stone-200 bg-surface p-3 focus-within:border-brand-500"
     >
@@ -31,6 +41,7 @@ export default function QuickForm() {
         name="content"
         required
         rows={3}
+        defaultValue={defaultValue}
         autoFocus
         placeholder="隨手記一下…（Ctrl/⌘ + Enter 送出）"
         onKeyDown={(e) => {

@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { signIn, signUp, type AuthState } from "@/app/actions/auth";
 
-export default function LoginForm() {
+export default function LoginForm({ next }: { next?: string }) {
   const [mode, setMode] = useState<"in" | "up">("in");
   const [state, action, pending] = useActionState<AuthState, FormData>(
     mode === "in" ? signIn : signUp,
@@ -12,6 +12,7 @@ export default function LoginForm() {
 
   return (
     <form action={action} className="space-y-4">
+      {next && <input type="hidden" name="next" value={next} />}
       <label className="block">
         <span className="text-sm font-medium">Email</span>
         <input

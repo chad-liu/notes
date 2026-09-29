@@ -4,6 +4,7 @@ import { createNote } from "@/app/actions/notes";
 import { createNotebook } from "@/app/actions/notebooks";
 import type { Notebook } from "@/lib/types";
 import NavLink from "./nav-link";
+import InstallButton from "./install-button";
 import ThemeToggle from "./theme-toggle";
 
 export default function Sidebar({
@@ -74,6 +75,7 @@ export default function Sidebar({
       )}
 
       <div className="mt-auto space-y-2 border-t border-stone-200 pt-3">
+        <InstallButton />
         <ThemeToggle />
         <p className="truncate px-2 text-xs text-stone-500">{email}</p>
         <form action={signOut}>
