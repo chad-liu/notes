@@ -34,8 +34,22 @@ alter table public.notes
   add column if not exists search_text text
   generated always as (public.note_search_text(title, tags, content)) stored;
 
-create index if not exists notes_search_trgm_idx
-  on public.notes using gin (search_text extensions.gin_trgm_ops);
+-- 有些專案早就在 public schema 啟用過 pg_trgm（上面的 create extension 就不會動它），
+-- 所以用實際所在的 schema 建索引
+do $$
+declare
+  trgm_schema text;
+begin
+  select n.nspname into trgm_schema
+  from pg_extension e join pg_namespace n on n.oid = e.extnamespace
+  where e.extname = 'pg_trgm';
+
+  execute format(
+    'create index if not exists notes_search_trgm_idx on public.notes using gin (search_text %I.gin_trgm_ops)',
+    trgm_schema
+  );
+end
+$$;
 
 -- 使用者輸入當作字面文字比對（跳脫 LIKE 的 % _ \）
 create or replace function public.like_pattern(term text)
