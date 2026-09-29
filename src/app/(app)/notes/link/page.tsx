@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createNoteWithTitle } from "@/app/actions/links";
+import { resolveNoteTitles } from "@/lib/note-links";
 import { requireUser } from "@/lib/supabase/server";
+import { titleKey } from "@/lib/wikilinks";
 
 export const metadata: Metadata = { title: "筆記連結" };
 
@@ -13,8 +15,7 @@ export default async function NoteLinkPage({ searchParams }: PageProps<"/notes/l
   if (!title) redirect("/notes");
 
   const { supabase } = await requireUser();
-  const { data } = await supabase.rpc("resolve_note_titles", { titles: [title] });
-  const id = (data as { id: string }[] | null)?.[0]?.id;
+  const id = (await resolveNoteTitles(supabase, [title]))[titleKey(title)];
   if (id) redirect(`/notes/${id}`);
 
   return (
