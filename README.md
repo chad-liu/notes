@@ -4,7 +4,8 @@
 
 | 功能 | 說明 |
 | --- | --- |
-| 📝 **筆記** | Markdown 編輯器（編輯 / 分割 / 預覽）、自動儲存、筆記本、標籤、釘選、全文搜尋、圖片與附件（按鈕、貼上、拖曳） |
+| 📝 **筆記** | Markdown 編輯器（編輯 / 分割 / 預覽）、自動儲存、筆記本、標籤、釘選、圖片與附件（按鈕、貼上、拖曳） |
+| 🔍 **搜尋** | 全文檢索（支援中文）：多關鍵字、`-排除`、`"片語"`、`#標籤`，依相關度排序並標示關鍵字；`Ctrl/⌘ + K` 隨時搜尋 |
 | ⚡ **速記** | 一行輸入、`Ctrl/⌘ + Enter` 立即記下，之後可轉成正式筆記 |
 | 📔 **日誌** | 月曆檢視，每天一篇，點日期即可寫 |
 | 📰 **新聞** | 訂閱 RSS / Atom，彙整閱讀；貼上網址或從 RSS 一鍵「剪藏」整篇文章成筆記 |
@@ -23,6 +24,7 @@
 2. 打開 **SQL Editor**，依序貼上並執行 `supabase/migrations/` 裡的檔案：
    - [`0001_init.sql`](supabase/migrations/0001_init.sql)：建立 `notebooks`、`notes`、`feeds` 三張表，並開啟 Row Level Security（每個人只看得到自己的資料）。
    - [`0002_attachments.sql`](supabase/migrations/0002_attachments.sql)：建立私有的 `attachments` Storage bucket（單檔上限 25 MB），每個人只能存取自己的檔案。
+   - [`0003_search.sql`](supabase/migrations/0003_search.sql)：全文檢索（`pg_trgm` 索引 + `search_notes` 函式）。
 3. **Authentication → URL Configuration**：
    - **Site URL** 填你的 Vercel 網址，例如 `https://notes-xxx.vercel.app`
    - **Redirect URLs** 加上 `https://notes-xxx.vercel.app/auth/confirm` 與 `http://localhost:3000/auth/confirm`
@@ -81,6 +83,7 @@ src/
     ├── supabase/               # Supabase client（server / proxy）
     ├── rss.ts                  # RSS / Atom 解析
     ├── clip.ts                 # 網頁剪藏：Readability 擷取內文 → Markdown
+    ├── search.ts               # 搜尋語法解析、關鍵字標示
     ├── safe-fetch.ts           # 抓外部網址（擋內網位址、限制大小、處理 Big5 等編碼）
     ├── attachments.ts          # 附件路徑與 Markdown 格式
     └── format.ts               # 日期、摘要、標籤工具
@@ -96,9 +99,10 @@ supabase/migrations/            # 資料庫結構
 
 所有資料表都開啟 RLS，政策為 `auth.uid() = user_id`。
 
+全文檢索用 `pg_trgm` 的 trigram 索引做子字串比對：中文沒有空白分詞，Postgres 內建的 `tsvector` 無法切出中文詞，子字串比對則任何字都搜得到。`notes.search_text` 是自動維護的欄位（標題 + 標籤 + 去掉 Markdown 與網址的內文）。`search_notes()` 是 `security definer` 函式並自行限制 `user_id = auth.uid()`，因為 RLS 會讓 `ILIKE` 無法使用索引。
+
 附件存在私有 bucket `attachments`，路徑為 `<user_id>/<note_id>/<隨機檔名>`。筆記裡的連結是 `/files/...`，由 App 確認登入後換成 1 小時有效的 signed URL，所以檔案不會公開、連結也不會過期。刪除筆記時會一併刪除它的附件。
 
 ## 之後可以加的功能
 
-- Postgres 全文檢索（`tsvector`）取代目前的 `ilike` 搜尋
 - 離線閱讀最近看過的筆記
