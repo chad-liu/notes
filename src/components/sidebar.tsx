@@ -4,6 +4,7 @@ import { createNote } from "@/app/actions/notes";
 import { createNotebook } from "@/app/actions/notebooks";
 import type { Notebook } from "@/lib/types";
 import NavLink from "./nav-link";
+import SearchBox from "./search-box";
 import InstallButton from "./install-button";
 import ThemeToggle from "./theme-toggle";
 
@@ -21,6 +22,8 @@ export default function Sidebar({
       <Link href="/notes" className="flex items-center gap-2 px-2 text-lg font-bold">
         🐘 我的筆記
       </Link>
+
+      <SearchBox />
 
       <form action={createNote.bind(null, "note", null)}>
         <button className="w-full rounded-full bg-brand-600 px-4 py-2 font-medium text-white shadow-sm hover:bg-brand-700">

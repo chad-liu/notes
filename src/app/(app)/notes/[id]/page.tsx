@@ -17,7 +17,11 @@ export default async function NotePage({ params }: PageProps<"/notes/[id]">) {
   const { supabase } = await requireUser();
 
   const [{ data: note }, { data: notebooks }] = await Promise.all([
-    supabase.from("notes").select("*").eq("id", id).maybeSingle(),
+    supabase
+      .from("notes")
+      .select("id, user_id, notebook_id, type, title, content, tags, pinned, journal_date, source_url, created_at, updated_at")
+      .eq("id", id)
+      .maybeSingle(),
     supabase.from("notebooks").select("id, name, created_at").order("name"),
   ]);
   if (!note) notFound();
