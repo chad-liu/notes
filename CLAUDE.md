@@ -50,6 +50,8 @@ npx next typegen       # 新增或改名路由後，重新產生路由型別（P
 
 **分享**（0009）：`/s/<token>` 不需要登入（`lib/supabase/proxy.ts` 放行 `/s/` 開頭，注意不是 `/s`，否則 `/share`、`/search` 也會被放行）。訪客只能透過 `shared_note(token)` 讀那一則筆記，讀不到 `note_shares`；附件走 `/s/<token>/files/…`，route 檢查檔案屬於被分享的筆記後簽名，Storage 另有 `attachments: read shared` 規則（`note_folder_is_shared`）。token 在 `app/actions/shares.ts` 用 `randomBytes(24)` 產生；每則筆記一個連結，換新就覆蓋、停止就刪列。分享頁用 `Markdown` 的 `shareToken`：附件改走分享路徑、站內連結（`[[…]]`）改成純文字。頁面設了 noindex 與 `referrer: no-referrer`，避免 token 外流。
 
+**範本**（0010）：內建範本寫在 `lib/templates.ts`（id 是 `builtin:<key>`，不在資料庫），自訂範本在 `note_templates`（一般 RLS）。`fillTemplate` 把 `{{日期}}`／`{{時間}}`／`{{星期}}`（或英文 key）換成台北時間的值，編輯器套用（內容空白時顯示「從範本開始」）和 `createNoteFromTemplate` 共用。
+
 **標籤**存在 `notes.tags`（text[]）。統計用 `tag_counts()`（`lib/tags.ts` 的 `loadTagCounts`，側邊欄、`/tags`、編輯器的標籤建議共用），改名／合併／刪除用 `replace_tag`（`app/actions/tags.ts`）。標籤名稱的規則以 `parseTags` 為準（不能有空白或逗號）。
 
 **資料變更**都是 `src/app/actions/` 裡的 Server Actions，通常會 `revalidatePath("/", "layout")` 讓側邊欄（筆記本、標籤）更新。筆記編輯器（`components/note-editor.tsx`）透過 debounce 的修改佇列呼叫 `updateNote` 自動儲存；每次儲存後伺服器端 props（`links`、`backlinks`）會更新，本地的編輯狀態則保留。

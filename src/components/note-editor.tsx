@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { renameNoteLinks } from "@/app/actions/links";
 import { updateNote, type NotePatch } from "@/app/actions/notes";
+import { saveTemplate } from "@/app/actions/templates";
 import { trashNote } from "@/app/actions/trash";
 import { formatDateTime, parseTags } from "@/lib/format";
+import { fillTemplate, type Template } from "@/lib/templates";
 import { setTaskChecked } from "@/lib/todos";
 import type { Backlink } from "@/lib/note-links";
 import { NOTE_TYPES, type Note, type Notebook, type NoteType } from "@/lib/types";
@@ -34,6 +36,7 @@ export default function NoteEditor({
   backlinks,
   allTags,
   share: initialShare = null,
+  templates = [],
 }: {
   note: Note;
   notebooks: Notebook[];
@@ -45,6 +48,8 @@ export default function NoteEditor({
   allTags: string[];
   /** 目前的分享連結 */
   share?: ShareInfo;
+  /** 內容是空的時候可以套用的範本 */
+  templates?: Template[];
 }) {
   const [title, setTitle] = useState(note.title);
   const [content, setContent] = useState(note.content);
@@ -59,6 +64,7 @@ export default function NoteEditor({
   const router = useRouter();
   const [share, setShare] = useState<ShareInfo>(initialShare);
   const [shareOpen, setShareOpen] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
 
   const pending = useRef<NotePatch>({});
@@ -112,6 +118,35 @@ export default function NoteEditor({
     },
     [updateContent],
   );
+  // 套用範本：內容換成範本；標題是空的才換；標籤合併
+  const applyTemplate = useCallback(
+    (t: Template) => {
+      const now = new Date();
+      if (!title.trim() && t.title) {
+        const nextTitle = fillTemplate(t.title, now);
+        setTitle(nextTitle);
+        queue({ title: nextTitle });
+      }
+      if (t.tags.length) {
+        const merged = [...new Set([...parseTags(tagsText), ...t.tags])];
+        setTagsText(merged.join(", "));
+        queue({ tags: merged });
+      }
+      updateContent(fillTemplate(t.content, now));
+      setMode("edit");
+    },
+    [title, tagsText, queue, updateContent],
+  );
+  const saveAsTemplate = async () => {
+    const name = window.prompt("範本名稱", title.trim() || "我的範本");
+    if (!name?.trim()) return;
+    const res = await saveTemplate({ name, title, content, tags: tagsText });
+    setNotice(
+      res.ok
+        ? `已存成範本「${name.trim()}」。想讓日期每次自動換成當天，可以到範本頁把日期改成 {{日期}}。`
+        : `存成範本失敗：${res.error}`,
+    );
+  };
   const attachments = useAttachmentUpload({
     userId: note.user_id,
     noteId: note.id,
@@ -238,6 +273,13 @@ export default function NoteEditor({
             onChange={setShare}
           />
           <button
+            onClick={() => void saveAsTemplate()}
+            title="把這則筆記存成範本，之後新增筆記時可以套用"
+            className="rounded-lg bg-surface px-2 py-1 ring-1 ring-stone-200 hover:bg-stone-50"
+          >
+            📋<span className="hidden lg:inline"> 存成範本</span>
+          </button>
+          <button
             onClick={async () => {
               // 先存好還沒送出的修改，版本紀錄頁才會跟目前內容比較
               await flush();
@@ -292,6 +334,36 @@ export default function NoteEditor({
         placeholder="標題"
         className="mb-2 w-full bg-transparent text-3xl font-bold outline-none placeholder:text-stone-300"
       />
+
+      {notice && (
+        <p role="status" className="mb-2 flex items-center gap-2 rounded-lg bg-brand-100 px-3 py-2 text-sm text-accent">
+          {notice}
+          <Link href="/templates" className="underline">
+            管理範本
+          </Link>
+          <button onClick={() => setNotice(null)} className="ml-auto" aria-label="關閉">
+            ✕
+          </button>
+        </p>
+      )}
+
+      {!content.trim() && templates.length > 0 && (
+        <div role="group" aria-label="從範本開始" className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-stone-500">從範本開始：</span>
+          {templates.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => applyTemplate(t)}
+              className="rounded-full bg-surface px-3 py-1 ring-1 ring-stone-200 hover:ring-brand-500"
+            >
+              {t.icon} {t.name}
+            </button>
+          ))}
+          <Link href="/templates" className="text-xs text-stone-500 hover:text-accent">
+            管理範本
+          </Link>
+        </div>
+      )}
 
       {renamed && linkedAtOpen > 0 && !renameDismissed && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
