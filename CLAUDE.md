@@ -28,6 +28,7 @@ npx next typegen       # 新增或改名路由後，重新產生路由型別（P
 - 新增 migration 的 PR 必須提醒使用者在**合併之前**先執行，因為程式碼一合併就會部署。
 - 不要假設 extension 所在的 schema：`pg_trgm` 依專案不同可能在 `public` 或 `extensions`（0003 會動態查詢）。
 - 後面的 migration 會用到前面建立的函式（0004 用到 0003 的 `search_text`、`like_pattern`、`search_snippet`）。
+- 批次修改筆記又不想更新「最後修改時間」時（例如 0005 的 `replace_tag`），在函式內 `set_config('notes.keep_updated_at', 'on', true)`，`touch_updated_at` 觸發器就會保留原值。
 
 ## 架構
 
@@ -38,6 +39,8 @@ npx next typegen       # 新增或改名路由後，重新產生路由型別（P
 **搜尋與連結函式刻意繞過 RLS。** `search_notes`、`resolve_note_titles`、`note_backlinks`、`rename_note_links` 是 `security definer` 函式，自行篩選 `user_id = auth.uid()`，因為在 RLS 下 Postgres 無法對 `ILIKE` 這類非 leakproof 運算子使用 trigram 索引。它們用 PL/pgSQL 的 `EXECUTE … USING`，讓每次呼叫都依實際搜尋字詞規劃查詢（一般 SQL 函式會用通用計畫而略過索引）。新增這類函式時必須保留明確的 `auth.uid()` 篩選、在它為 null 時不回傳任何資料，並 `revoke … from public, anon`。搜尋是子字串比對（`pg_trgm`）而不是 `tsvector`，因為 Postgres 全文檢索無法斷中文詞。
 
 **筆記連結解析**（`lib/note-links.ts` 的 `resolveNoteTitles`）先呼叫 `resolve_note_titles`；函式出錯（會寫進伺服器 log）或有標題對不到時，會直接查 `notes` 表並在 JS 用 `titleKey` 比對，因為 SQL 的 `btrim` 去不掉全形空白、不換行空白。筆記頁與 `/notes/link` 都走這個函式。
+
+**標籤**存在 `notes.tags`（text[]）。統計用 `tag_counts()`（`lib/tags.ts` 的 `loadTagCounts`，側邊欄、`/tags`、編輯器的標籤建議共用），改名／合併／刪除用 `replace_tag`（`app/actions/tags.ts`）。標籤名稱的規則以 `parseTags` 為準（不能有空白或逗號）。
 
 **資料變更**都是 `src/app/actions/` 裡的 Server Actions，通常會 `revalidatePath("/", "layout")` 讓側邊欄（筆記本、標籤）更新。筆記編輯器（`components/note-editor.tsx`）透過 debounce 的修改佇列呼叫 `updateNote` 自動儲存；每次儲存後伺服器端 props（`links`、`backlinks`）會更新，本地的編輯狀態則保留。
 

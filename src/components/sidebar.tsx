@@ -62,7 +62,12 @@ export default function Sidebar({
 
       {tags.length > 0 && (
         <div>
-          <h3 className="mb-1 px-2 text-xs font-semibold tracking-wide text-stone-500">標籤</h3>
+          <div className="mb-1 flex items-baseline justify-between px-2">
+            <h3 className="text-xs font-semibold tracking-wide text-stone-500">標籤</h3>
+            <Link href="/tags" className="text-xs text-accent hover:underline">
+              管理
+            </Link>
+          </div>
           <div className="flex flex-wrap gap-1 px-1">
             {tags.slice(0, 40).map((t) => (
               <Link
@@ -73,11 +78,17 @@ export default function Sidebar({
                 #{t}
               </Link>
             ))}
+            {tags.length > 40 && (
+              <Link href="/tags" className="px-1 py-0.5 text-xs text-stone-500 hover:text-accent">
+                全部 {tags.length} 個…
+              </Link>
+            )}
           </div>
         </div>
       )}
 
       <div className="mt-auto space-y-2 border-t border-stone-200 pt-3">
+        <NavLink href="/tags">🏷️ 標籤管理</NavLink>
         <NavLink href="/export">⬇️ 匯出備份</NavLink>
         <InstallButton />
         <ThemeToggle />

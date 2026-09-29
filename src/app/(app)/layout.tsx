@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/supabase/server";
+import { loadTagCounts } from "@/lib/tags";
 import Sidebar from "@/components/sidebar";
 import MobileNav from "@/components/mobile-nav";
 import type { Notebook } from "@/lib/types";
@@ -6,16 +7,11 @@ import type { Notebook } from "@/lib/types";
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const { supabase, email } = await requireUser();
 
-  const [{ data: notebooks }, { data: tagRows }] = await Promise.all([
+  const [{ data: notebooks }, tagCounts] = await Promise.all([
     supabase.from("notebooks").select("id, name, created_at").order("name"),
-    supabase.from("notes").select("tags").neq("tags", "{}").limit(1000),
+    loadTagCounts(supabase),
   ]);
-
-  const tagCounts = new Map<string, number>();
-  for (const row of tagRows ?? []) {
-    for (const t of row.tags as string[]) tagCounts.set(t, (tagCounts.get(t) ?? 0) + 1);
-  }
-  const tags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).map(([t]) => t);
+  const tags = tagCounts.map((t) => t.tag);
 
   const sidebar = (
     <Sidebar notebooks={(notebooks ?? []) as Notebook[]} tags={tags} email={email} />
