@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Children, createElement, type ReactNode } from "react";
+import { Children, cloneElement, createElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { remarkWikiLinks } from "@/lib/wikilinks";
@@ -32,14 +32,59 @@ const components: Components = {
   tr: tableTag("tr"),
 };
 
+type ToggleTask = (line: number, checked: boolean) => void;
+
+/** 把待辦項目裡的 checkbox 變成可以點（鬆散清單的 checkbox 會包在 <p> 裡，所以往下找一層） */
+function enableCheckboxes(children: ReactNode, onChange: (checked: boolean) => void, depth = 0): ReactNode {
+  return Children.map(children, (child) => {
+    if (!isValidElement(child)) return child;
+    const el = child as ReactElement<{ type?: string; children?: ReactNode }>;
+    if (el.type === "input" && el.props.type === "checkbox") {
+      return cloneElement(el as ReactElement<Record<string, unknown>>, {
+        disabled: false,
+        className: "cursor-pointer",
+        "aria-label": "完成",
+        onChange: (e: { target: { checked: boolean } }) => onChange(e.target.checked),
+      });
+    }
+    if (depth < 1 && el.type === "p") {
+      return cloneElement(el, {}, enableCheckboxes(el.props.children, onChange, depth + 1));
+    }
+    return child;
+  });
+}
+
+function withTaskToggle(onToggleTask: ToggleTask): Components {
+  return {
+    ...components,
+    li: ({ node, children, ...props }) => {
+      const line = node?.position?.start.line;
+      if (!props.className?.includes("task-list-item") || !line) return <li {...props}>{children}</li>;
+      return <li {...props}>{enableCheckboxes(children, (checked) => onToggleTask(line - 1, checked))}</li>;
+    },
+  };
+}
+
 /**
  * links：[[筆記連結]] 的標題（titleKey）→ 筆記 id。
  * 有提供時，找不到的標題會標成「還不存在」。
+ * onToggleTask：提供時待辦的 checkbox 可以勾選（line 是原始內容的第幾行，從 0 開始）。
  */
-export default function Markdown({ children, links }: { children: string; links?: Record<string, string> }) {
+export default function Markdown({
+  children,
+  links,
+  onToggleTask,
+}: {
+  children: string;
+  links?: Record<string, string>;
+  onToggleTask?: ToggleTask;
+}) {
   return (
     <div className="prose prose-stone dark:prose-invert max-w-none prose-a:text-accent prose-img:rounded-lg">
-      <ReactMarkdown remarkPlugins={[remarkGfm, [remarkWikiLinks, { links }]]} components={components}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, [remarkWikiLinks, { links }]]}
+        components={onToggleTask ? withTaskToggle(onToggleTask) : components}
+      >
         {children}
       </ReactMarkdown>
     </div>
