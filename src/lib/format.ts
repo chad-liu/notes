@@ -49,3 +49,10 @@ export function parseTags(input: string) {
     ),
   );
 }
+
+/** 登入後要回到的頁面；只接受站內路徑，避免被拿來轉址到外部網站 */
+export function safeNextPath(next: unknown) {
+  return typeof next === "string" && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\")
+    ? next
+    : "/";
+}

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22a55a"/>
+      <stop offset="1" stop-color="#15803d"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- 筆記頁，右上角折角 -->
+  <path d="M156 112h150l70 70v206a24 24 0 0 1-24 24H156a24 24 0 0 1-24-24V136a24 24 0 0 1 24-24z" fill="#fff"/>
+  <path d="M306 112v46a24 24 0 0 0 24 24h46z" fill="#c9f0d6"/>
+  <rect x="176" y="224" width="160" height="22" rx="11" fill="#15803d"/>
+  <rect x="176" y="276" width="160" height="22" rx="11" fill="#86d9a4"/>
+  <rect x="176" y="328" width="104" height="22" rx="11" fill="#86d9a4"/>
+</svg>

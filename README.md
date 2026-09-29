@@ -9,6 +9,8 @@
 | 📔 **日誌** | 月曆檢視，每天一篇，點日期即可寫 |
 | 📰 **新聞** | 訂閱 RSS / Atom，彙整閱讀；貼上網址或從 RSS 一鍵「剪藏」整篇文章成筆記 |
 
+| 📲 **App** | 可加到手機主畫面（PWA）：長按圖示有速記 / 日誌 / 剪藏捷徑，Android 可從其他 App「分享」進來，離線時顯示提示頁 |
+
 技術：**Next.js 16**（App Router、Server Actions）+ **Supabase**（Auth、Postgres、RLS）+ **Tailwind CSS 4**，部署在 **Vercel**。
 
 ---
@@ -39,7 +41,13 @@
    > 也可以直接在 Vercel Marketplace 安裝 **Supabase 整合**，會自動帶入這些變數。
 3. Deploy。之後每次 push 到 GitHub，Vercel 都會自動重新部署（PR 會有預覽網址）。
 
-### 3. 本機開發
+### 3. 加到手機主畫面
+
+- **iPhone / iPad**：用 Safari 開啟網站 → 分享按鈕 → 加入主畫面
+- **Android / 電腦版 Chrome、Edge**：側邊欄的「📲 安裝到主畫面」，或網址列的安裝圖示
+- 安裝後在 Android 的「分享」選單會出現「我的筆記」，可以直接剪藏網址或存成速記
+
+### 4. 本機開發
 
 ```bash
 cp .env.example .env.local   # 填入 Supabase 的 URL 和 key
@@ -53,17 +61,20 @@ npm run dev                  # http://localhost:3000
 
 ```
 src/
-├── proxy.ts                    # Next 16 的 proxy（原 middleware）：刷新 session、未登入導向 /login
+├── proxy.ts                    # Next 16 的 proxy（原 middleware）：刷新 session、未登入導向 /login?next=…
 ├── app/
 │   ├── login/                  # 登入 / 註冊
 │   ├── auth/confirm/           # Email 確認連結的回呼
 │   ├── files/[...path]/        # 附件連結：確認登入後轉址到短效 signed URL
+│   ├── manifest.ts             # PWA manifest（捷徑、分享目標）
+│   ├── offline/                # 離線時由 Service Worker 顯示
 │   ├── (app)/                  # 需登入的頁面（含側邊欄）
 │   │   ├── notes/              # 筆記列表、搜尋、篩選
 │   │   ├── notes/[id]/         # 筆記編輯器
 │   │   ├── quick/              # 速記
 │   │   ├── journal/            # 日誌月曆
-│   │   └── news/               # RSS 新聞
+│   │   ├── news/               # RSS 新聞、剪藏網頁
+│   │   └── share/              # PWA 分享目標
 │   └── actions/                # Server Actions（新增 / 更新 / 刪除）
 ├── components/                 # 側邊欄、編輯器、Markdown 等元件
 └── lib/
@@ -73,6 +84,7 @@ src/
     ├── safe-fetch.ts           # 抓外部網址（擋內網位址、限制大小、處理 Big5 等編碼）
     ├── attachments.ts          # 附件路徑與 Markdown 格式
     └── format.ts               # 日期、摘要、標籤工具
+public/sw.js                    # Service Worker：頁面不快取，只快取靜態檔與離線頁
 supabase/migrations/            # 資料庫結構
 ```
 
@@ -89,4 +101,4 @@ supabase/migrations/            # 資料庫結構
 ## 之後可以加的功能
 
 - Postgres 全文檢索（`tsvector`）取代目前的 `ilike` 搜尋
-- PWA 離線 / 加到主畫面
+- 離線閱讀最近看過的筆記

@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { clipWebPage, type ClipState } from "@/app/actions/notes";
 
-export default function ClipForm() {
+export default function ClipForm({ defaultUrl }: { defaultUrl?: string }) {
   const [state, action, pending] = useActionState<ClipState, FormData>(clipWebPage, {});
 
   return (
@@ -19,6 +19,7 @@ export default function ClipForm() {
           name="url"
           required
           inputMode="url"
+          defaultValue={defaultUrl}
           placeholder="https://…"
           disabled={pending}
           className="min-w-0 flex-1 rounded-lg border border-stone-300 bg-surface px-3 py-1.5 text-sm outline-none focus:border-brand-500 disabled:opacity-60"

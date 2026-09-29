@@ -31,9 +31,11 @@ export async function updateSession(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
 
   if (!data?.claims && !isPublic) {
+    // 記住原本要去的頁面（例如從手機分享進來），登入後回到那裡
     const url = request.nextUrl.clone();
+    const next = request.nextUrl.pathname + request.nextUrl.search;
     url.pathname = "/login";
-    url.search = "";
+    url.search = next === "/" ? "" : `?next=${encodeURIComponent(next)}`;
     return NextResponse.redirect(url);
   }
 

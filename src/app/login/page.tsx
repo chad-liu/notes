@@ -4,7 +4,8 @@ import LoginForm from "./login-form";
 
 export const metadata: Metadata = { title: "登入" };
 
-export default function LoginPage() {
+export default async function LoginPage({ searchParams }: PageProps<"/login">) {
+  const { next } = await searchParams;
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-surface p-8 shadow-sm">
@@ -14,7 +15,7 @@ export default function LoginPage() {
           <p className="mt-1 text-sm text-stone-500">筆記 · 速記 · 日誌 · 新聞</p>
         </div>
         {hasSupabaseEnv ? (
-          <LoginForm />
+          <LoginForm next={typeof next === "string" ? next : undefined} />
         ) : (
           <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
             尚未設定 Supabase 環境變數。請設定 <code>NEXT_PUBLIC_SUPABASE_URL</code> 與{" "}

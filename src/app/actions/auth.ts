@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { safeNextPath } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 
 export type AuthState = { error?: string; message?: string };
@@ -17,7 +18,7 @@ export async function signIn(_: AuthState, formData: FormData): Promise<AuthStat
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(readCredentials(formData));
   if (error) return { error: error.message };
-  redirect("/");
+  redirect(safeNextPath(formData.get("next")));
 }
 
 export async function signUp(_: AuthState, formData: FormData): Promise<AuthState> {
@@ -28,7 +29,7 @@ export async function signUp(_: AuthState, formData: FormData): Promise<AuthStat
     options: { emailRedirectTo: `${origin}/auth/confirm` },
   });
   if (error) return { error: error.message };
-  if (data.session) redirect("/");
+  if (data.session) redirect(safeNextPath(formData.get("next")));
   return { message: "註冊成功！請到信箱點擊確認連結後再登入。" };
 }
 
