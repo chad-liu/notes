@@ -16,7 +16,7 @@ export default function NavLink({ href, children }: { href: string; children: Re
     <Link
       href={href}
       className={`block truncate rounded-md px-2 py-1.5 ${
-        active ? "bg-brand-100 font-medium text-brand-700" : "text-stone-700 hover:bg-stone-200"
+        active ? "bg-brand-100 font-medium text-accent" : "text-stone-700 hover:bg-stone-200"
       }`}
     >
       {children}

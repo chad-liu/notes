@@ -81,7 +81,7 @@ export default async function NotesPage({ searchParams }: PageProps<"/notes">) {
           name="q"
           defaultValue={sp.q}
           placeholder="🔍 搜尋標題或內容…"
-          className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
+          className="w-full rounded-lg border border-stone-300 bg-surface px-3 py-2 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
         />
       </form>
 
@@ -109,7 +109,7 @@ export default async function NotesPage({ searchParams }: PageProps<"/notes">) {
           <li key={n.id}>
             <Link
               href={`/notes/${n.id}`}
-              className="block rounded-xl border border-stone-200 bg-white p-4 transition hover:border-brand-500 hover:shadow-sm"
+              className="block rounded-xl border border-stone-200 bg-surface p-4 transition hover:border-brand-500 hover:shadow-sm"
             >
               <div className="flex items-center gap-2">
                 <span>{typeIcon(n.type)}</span>
@@ -144,7 +144,7 @@ function FilterChip({ href, active, children }: { href: string; active: boolean;
     <Link
       href={href}
       className={`rounded-full px-3 py-1 ring-1 ${
-        active ? "bg-brand-600 text-white ring-brand-600" : "bg-white text-stone-600 ring-stone-200 hover:ring-brand-500"
+        active ? "bg-brand-600 text-white ring-brand-600" : "bg-surface text-stone-600 ring-stone-200 hover:ring-brand-500"
       }`}
     >
       {children}

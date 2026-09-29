@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "登入" };
 export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-8 shadow-sm">
+      <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-surface p-8 shadow-sm">
         <div className="mb-6 text-center">
           <div className="text-4xl">🐘</div>
           <h1 className="mt-2 text-2xl font-bold">我的筆記</h1>

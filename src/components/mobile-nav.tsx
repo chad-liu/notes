@@ -14,7 +14,7 @@ export default function MobileNav({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="md:hidden">
-      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-stone-200 bg-white px-4 py-3">
+      <div className="sticky top-0 z-20 flex items-center gap-3 border-b border-stone-200 bg-surface px-4 py-3">
         <button
           onClick={() => setOpen(true)}
           aria-label="開啟選單"

@@ -40,7 +40,7 @@ export default function FeedForm() {
             onClick={() => {
               if (inputRef.current) inputRef.current.value = s.url;
             }}
-            className="text-brand-700 hover:underline"
+            className="text-accent hover:underline"
           >
             {s.title}
           </button>

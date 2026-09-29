@@ -25,7 +25,7 @@ export default function QuickForm() {
         await createQuickNote(fd);
         formRef.current?.reset();
       }}
-      className="rounded-xl border border-stone-200 bg-white p-3 focus-within:border-brand-500"
+      className="rounded-xl border border-stone-200 bg-surface p-3 focus-within:border-brand-500"
     >
       <textarea
         name="content"

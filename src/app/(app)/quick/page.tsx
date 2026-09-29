@@ -26,13 +26,13 @@ export default async function QuickPage() {
 
       <ul className="mt-6 space-y-3">
         {(notes as Note[] | null)?.map((n) => (
-          <li key={n.id} className="group rounded-xl border border-stone-200 bg-white p-4">
+          <li key={n.id} className="group rounded-xl border border-stone-200 bg-surface p-4">
             <div className="text-sm">
               <Markdown>{n.content || n.title}</Markdown>
             </div>
             <div className="mt-2 flex items-center gap-2 text-xs text-stone-400">
               <span>{formatDateTime(n.created_at)}</span>
-              <Link href={`/notes/${n.id}`} className="ml-auto text-brand-700 opacity-0 group-hover:opacity-100 focus:opacity-100 max-md:opacity-100">
+              <Link href={`/notes/${n.id}`} className="ml-auto text-accent opacity-0 group-hover:opacity-100 focus:opacity-100 max-md:opacity-100">
                 編輯 / 轉為筆記 →
               </Link>
             </div>
