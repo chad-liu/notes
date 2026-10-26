@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
-個人版 Evernote 風格的筆記 App（筆記、速記、日誌、RSS 新聞與網頁剪藏、附件、`[[筆記連結]]`、全文檢索、PWA、Markdown 匯出）。使用 Next.js 16 App Router + Supabase（Auth、Postgres、Storage），部署在 Vercel。介面文字與程式註解都是繁體中文，新增的介面文字和註解請維持同樣語言。
+個人版 Evernote 風格的筆記 App（筆記、速記、日誌月曆、RSS 新聞與網頁剪藏、附件、`[[筆記連結]]`、全文檢索、標籤與筆記本管理、待辦總覽、垃圾桶、版本紀錄、唯讀分享連結、筆記範本、PWA、Markdown 匯出）。使用 Next.js 16 App Router + Supabase（Auth、Postgres、Storage），部署在 Vercel。介面文字與程式註解都是繁體中文，新增的介面文字和註解請維持同樣語言。
 
 ## 常用指令
 
@@ -34,9 +34,9 @@ npx next typegen       # 新增或改名路由後，重新產生路由型別（P
 
 **登入與路由。** Next 16 把 middleware 改名為 `src/proxy.ts`，它呼叫 `src/lib/supabase/proxy.ts` 的 `updateSession` 更新 Supabase session，並把未登入的使用者導到 `/login?next=…`（`lib/format.ts` 的 `safeNextPath` 只允許站內路徑）。matcher 會略過靜態檔、圖片副檔名、`sw.js`、`manifest.webmanifest` 與 `/offline`，所以這些路徑必須在沒有 session 時也能用；落在被略過路徑下的 route handler（例如 `/files/*.png`）要自己檢查登入。`src/app/(app)/` 底下的頁面共用側邊欄 layout，並呼叫 `requireUser()`（`lib/supabase/server.ts`）取得伺服器端 Supabase client 與使用者 id。
 
-**資料模型。** 所有種類的筆記都放在同一張 `notes` 表，用 `type`（`note | quick | journal | news`）區分；日誌每個 `(user_id, journal_date)` 只有一則。`notebooks` 和 `feeds` 是獨立的表。所有表都用 RLS `auth.uid() = user_id`。`notes.search_text` 是儲存型的產生欄位（標題 + 標籤 + 去掉 Markdown 的純文字），供搜尋與反向連結使用。
+**資料模型。** 所有種類的筆記都放在同一張 `notes` 表，用 `type`（`note | quick | journal | news`）區分；日誌每個 `(user_id, journal_date)` 只有一則。其他表：`notebooks`、`feeds`、`note_versions`（0007）、`note_shares`（0009）、`note_templates`（0010）。RLS 一律以 `auth.uid() = user_id` 為基礎，但有幾張更嚴：`notes` 另外要求 `deleted_at is null`，`note_versions` 用戶端只能讀，`note_shares` 只能讀和刪；這些表的寫入都走 `security definer` 函式。`notes.search_text` 是儲存型的產生欄位（標題 + 標籤 + 去掉 Markdown 的純文字），供搜尋與反向連結使用。
 
-**搜尋與連結函式刻意繞過 RLS。** `search_notes`、`resolve_note_titles`、`note_backlinks`、`rename_note_links` 是 `security definer` 函式，自行篩選 `user_id = auth.uid()`，因為在 RLS 下 Postgres 無法對 `ILIKE` 這類非 leakproof 運算子使用 trigram 索引。它們用 PL/pgSQL 的 `EXECUTE … USING`，讓每次呼叫都依實際搜尋字詞規劃查詢（一般 SQL 函式會用通用計畫而略過索引）。新增這類函式時必須保留明確的 `auth.uid()` 篩選、在它為 null 時不回傳任何資料，並 `revoke … from public, anon`。搜尋是子字串比對（`pg_trgm`）而不是 `tsvector`，因為 Postgres 全文檢索無法斷中文詞。
+**`security definer` 函式刻意繞過 RLS。** 搜尋與連結（`search_notes`、`resolve_note_titles`、`note_backlinks`、`rename_note_links`）這樣做是因為在 RLS 下 Postgres 無法對 `ILIKE` 這類非 leakproof 運算子使用 trigram 索引；垃圾桶、版本還原、筆記本合併／刪除、分享的函式則是為了做用戶端被 RLS 禁止的寫入。它們都自行篩選 `user_id = auth.uid()`。它們用 PL/pgSQL 的 `EXECUTE … USING`，讓每次呼叫都依實際搜尋字詞規劃查詢（一般 SQL 函式會用通用計畫而略過索引）。新增這類函式時必須保留明確的 `auth.uid()` 篩選、在它為 null 時不回傳任何資料，並 `revoke … from public, anon`。搜尋是子字串比對（`pg_trgm`）而不是 `tsvector`，因為 Postgres 全文檢索無法斷中文詞。
 
 **筆記連結解析**（`lib/note-links.ts` 的 `resolveNoteTitles`）先呼叫 `resolve_note_titles`；函式出錯（會寫進伺服器 log）或有標題對不到時，會直接查 `notes` 表並在 JS 用 `titleKey` 比對，因為 SQL 的 `btrim` 去不掉全形空白、不換行空白。筆記頁與 `/notes/link` 都走這個函式。
 
@@ -74,4 +74,5 @@ npx next typegen       # 新增或改名路由後，重新產生路由型別（P
 - 用程式在編輯器 textarea 插入文字並移動游標時，要用 `flushSync` 更新並同步設定選取範圍；若用 `requestAnimationFrame` 移動游標，期間打的字會亂掉。
 - 編輯器的鍵盤處理在輸入法組字時必須忽略按鍵（`nativeEvent.isComposing`／keyCode 229）；Enter 和方向鍵是注音／拼音選字在用的。
 - Client component 在 `startTransition(async () => …)` 裡 `await` Server Action 之後再更新 state，要再包一層 `startTransition`，不然提示訊息會比伺服器送來的新資料早一步顯示（React 19 的行為）。
+- ESLint 的 `react-hooks/purity` 不允許在 component（包含 Server Component 頁面）渲染時呼叫 `Date.now()`；需要「現在時間」的計算放到 `lib/` 的函式裡（例如 `lib/trash.ts` 的 `daysLeft`、`lib/shares.ts` 的 `loadAllShares`）。
 - `Content-Disposition` 的下載檔名只能用 ASCII；部分 Chromium 會忽略 UTF-8 的 `filename*`，把檔案命名成「download」。
